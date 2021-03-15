@@ -1,0 +1,66 @@
+request_adapters:
+- default_planner_request_adapters/AddTimeParameterization
+- default_planner_request_adapters/FixWorkspaceBounds
+- default_planner_request_adapters/FixStartStateBounds
+- default_planner_request_adapters/FixStartStateCollision
+- default_planner_request_adapters/FixStartStatePathConstraints
+
+inbound:
+  boxes:
+  - {name: "sp1",            frame: "table",        position: [ 0.004, 1.005, 0.053],  quaternion: [1.000, 0.000, 0.000, 0.000], height: 0.15 } # vettore
+  - {name: "sp2",            frame: "table",        position: [ 0.004, 1.078, 0.053],  quaternion: [1.000, 0.000, 0.000, 0.000], height: 0.15 } # vettore
+  - {name: "sp3",            frame: "table",        position: [ 0.004, 1.136, 0.053],  quaternion: [1.000, 0.000, 0.000, 0.000], height: 0.15 } # vettore
+  - {name: "sp4",            frame: "table",        position: [ 0.004, 1.208, 0.053],  quaternion: [1.000, 0.000, 0.000, 0.000], height: 0.15 } # vettore
+  - {name: "sp5",            frame: "table",        position: [ 0.004, 1.268, 0.053],  quaternion: [1.000, 0.000, 0.000, 0.000], height: 0.15 } # vettore
+  - {name: "sg1",            frame: "table",        position: [ 0.045, 0.529, 0.054], quaternion: [0.7071068, -0.7071068, -0.000, -0.000], height: 0.15} # vettore
+  - {name: "sg2",            frame: "table",        position: [ 0.045, 0.673, 0.054], quaternion: [0.7071068, -0.7071068, -0.000, -0.000], height: 0.15} # vettore
+  - {name: "sg3",            frame: "table",        position: [ 0.045, 0.803, 0.054], quaternion: [0.7071068, -0.7071068, -0.000, -0.000], height: 0.15} # vettore  
+  - {name: "sg4",            frame: "table",        position: [ 0.045, 0.930, 0.054], quaternion: [0.7071068, -0.7071068, -0.000, -0.000], height: 0.15} # vettore
+  - {name: "warehouse1",     frame: "table",        position: [-0.234, 0.408, 0.064], quaternion: [0.705, 0.708, 0.016, -0.031], height: 0.12} # vettore
+
+  objects:
+  - {type: "squadra_piccola",  frame: "table", position: [ 0.005, 1.005, 0.001], quaternion: [0,0,0,1], inbound: "sp1"}
+  - {type: "squadra_piccola",  frame: "table", position: [ 0.005, 1.078, 0.001], quaternion: [0,0,0,1], inbound: "sp2"}
+  - {type: "squadra_piccola",  frame: "table", position: [ 0.005, 1.136, 0.001], quaternion: [0,0,0,1], inbound: "sp3"}
+  - {type: "squadra_piccola",  frame: "table", position: [ 0.005, 1.208, 0.001], quaternion: [0,0,0,1], inbound: "sp4"}
+  - {type: "squadra_piccola",  frame: "table", position: [ 0.005, 1.268, 0.001], quaternion: [0,0,0,1], inbound: "sp5"}
+
+  - {type: "squadra_grande",  frame: "table", position: [ 0.061, 0.529, 0.001], quaternion: [ 0, 0, -0.7071068, 0.7071068 ], inbound: "sg1"}
+  - {type: "squadra_grande",  frame: "table", position: [ 0.061, 0.673, 0.001], quaternion: [ 0, 0, -0.7071068, 0.7071068 ], inbound: "sg2"}
+  - {type: "squadra_grande",  frame: "table", position: [ 0.061, 0.803, 0.001], quaternion: [ 0, 0, -0.7071068, 0.7071068 ], inbound: "sg3"}
+  - {type: "squadra_grande",  frame: "table", position: [ 0.061, 0.930, 0.001], quaternion: [ 0, 0, -0.7071068, 0.7071068 ], inbound: "sg4"}
+
+inbound_pick_server:
+
+  ik_sol_number: 200
+  
+  groups:
+    manipulator: open_tip
+
+  manipulator:
+    preferred_configuration: [1.4762239456176758, -1.7016049824156703, 1.7525199095355433, -0.6964729589274903, 1.4800915718078613, -2.1354430357562464]
+    preferred_configuration_weight: [0, 1, 1, 1, 1, 1]
+    max_ik_goal_number: 80
+    use_single_goal: false
+
+
+squadra_grande:
+  color: [1,0.8,0,1.]
+  mesh: "package://sharework_cembre_description/mesh/squadra120mm.STL"
+  scale: [0.001, 0.001, 0.001]
+
+  offset: [0,0,0.00] #
+  grasp_poses:
+  - {tool: "open_tip", position: [0, 0, 0.060], quaternion: [1,0,0,0]}
+#  - {tool: "open_tip", position: [0, 0, 0.060], quaternion: [0,1,0,0]}
+
+squadra_piccola:
+  color: [1,0.8,0,1.]
+  box:  [0.08,0.04,0.08]
+  mesh: "package://sharework_cembre_description/mesh/squadra40mm.STL"
+  scale: [0.001, 0.001, 0.001]
+
+  offset: [0,0,0.00] #
+  grasp_poses:
+  - {tool: "open_tip", position: [0, 0, 0.060], quaternion: [1,0,0,0]}
+  - {tool: "open_tip", position: [0, 0, 0.060], quaternion: [0,1,0,0]}

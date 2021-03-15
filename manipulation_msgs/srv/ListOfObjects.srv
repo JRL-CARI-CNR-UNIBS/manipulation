@@ -1,0 +1,4 @@
+---
+string[] object_types
+string[] object_names
+string[] box_names
