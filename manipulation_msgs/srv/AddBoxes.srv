@@ -1,0 +1,6 @@
+manipulation_msgs/Box[] add_boxes
+---
+int8 results
+int8 Success=0
+int8 Error=-1
+int8 BoxNotFound=-2

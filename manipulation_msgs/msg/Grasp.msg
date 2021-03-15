@@ -1,0 +1,2 @@
+string tool_name
+manipulation_msgs/Location location

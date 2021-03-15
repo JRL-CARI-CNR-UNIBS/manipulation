@@ -1,0 +1,9 @@
+string skill_name
+string skill_id
+---
+int8 results
+int8 Success=0
+int8 SkillNotFound=-1
+int8 HwError=-2
+int8 TimeoutError=-3
+

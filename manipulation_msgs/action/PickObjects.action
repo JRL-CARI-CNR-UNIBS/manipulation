@@ -1,0 +1,30 @@
+string[] object_types
+---
+string object_name
+string object_type
+string inbound_box
+int8 result
+int8 NoInboundBoxFound=-1
+int8 NoObjectsFound=-2
+int8 NoAvailableTrajectories=-3
+int8 GraspFailure=-4
+int8 TrajectoryError=-5
+int8 SceneError=-6
+int8 Success=0
+int8 UnexpectedError=-99
+
+duration expected_execution_duration
+duration actual_duration
+duration planning_duration
+duration grasping_object_duration
+int32 trials
+duration estimated_hrc_execution_duration
+float64 path_length
+float64 cost
+
+---
+int8 phase
+int8 GoingToApproach=1
+int8 GoingToGrasp=2
+int8 ReturningToApproach=3
+int8 GoingToTarget=4

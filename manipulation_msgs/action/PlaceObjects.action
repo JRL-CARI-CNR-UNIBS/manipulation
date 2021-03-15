@@ -1,0 +1,30 @@
+string object_type
+string object_name
+string[] slot_names
+---
+int8 result
+int8 Success=0
+int8 NotInitialized=-1
+int8 Full=-2
+int8 ReleaseError=-3
+int8 SceneError=-4
+int8 NoAvailableTrajectories=-5
+int8 TrajectoryError=-6
+int8 ReturnError=-7
+int8 UnexpectedError=-99
+
+duration expected_execution_duration
+duration actual_duration
+duration planning_duration
+duration release_object_duration
+int32 trials
+duration estimated_hrc_execution_duration
+float64 path_length
+float64 cost
+
+---
+int8 phase
+int8 GoingToApproach=1
+int8 GoingToPlace=2
+int8 ReturningToPlace=3
+

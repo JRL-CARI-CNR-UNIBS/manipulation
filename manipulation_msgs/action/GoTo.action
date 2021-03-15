@@ -1,0 +1,19 @@
+ string location_name
+---
+int8 result
+int8 SceneError=-1
+int8 NoAvailableTrajectories=-2
+int8 TrajectoryError=-3
+int8 NotInitialized=-4
+int8 Success=0
+
+duration expected_execution_duration
+duration actual_duration
+duration planning_duration
+int32 trials
+duration estimated_hrc_execution_duration
+float64 path_length
+float64 cost
+---
+int8 phase
+int8 GoingToLocation=1
