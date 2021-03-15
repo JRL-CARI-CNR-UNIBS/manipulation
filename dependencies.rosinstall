@@ -1,0 +1,12 @@
+- git:
+    local-name: motion/moveit/moveit_planning_helper
+    uri: https://github.com/CNR-STIIMA-IRAS/moveit_planning_helper
+- git:
+    local-name: perception/object_loader
+    uri: https://bitbucket.org/iras-ind/object_loader.git
+- git:
+    local-name: rosdyn
+    uri: https://github.com/CNR-STIIMA-IRAS/rosdyn
+- git:
+    local-name: common/rosparam_utilities
+    uri: https://github.com/CNR-STIIMA-IRAS/rosparam_utilities
