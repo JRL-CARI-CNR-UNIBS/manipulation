@@ -1,3 +1,12 @@
+#Vector of object names that need to be picked
+#in case of multiple object names the best location will be selected by the motion planner 
+#use a single element vector to pick a specific object 
+#the object_types vector will be ignored if vector object_names has elements and 
+#if at least of one object is present in a box, otherwise object will selected by types
+string[] object_names
+#Vector of object types that need to be picked
+#in case of multiple object types the best location will be selected by the motion planner 
+#the pick object by types the vector object_names need to be empty
 string[] object_types
 ---
 string object_name

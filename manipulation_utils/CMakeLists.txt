@@ -41,13 +41,13 @@ include_directories(
 )
 
 add_library(${PROJECT_NAME}
-	    src/${PROJECT_NAME}/location.cpp
-      src/${PROJECT_NAME}/go_to_location.cpp
-      src/${PROJECT_NAME}/pick_objects.cpp
-      src/${PROJECT_NAME}/place_objects.cpp
-      src/${PROJECT_NAME}/manipulation_load_params_utils.cpp
-      src/${PROJECT_NAME}/manipulation_utils.cpp 
-      src/${PROJECT_NAME}/skill_base.cpp 
+            src/location.cpp
+            src/go_to_location.cpp
+            src/pick_objects.cpp
+            src/place_objects.cpp
+            src/manipulation_load_params_utils.cpp
+            src/manipulation_utils.cpp 
+            src/skill_base.cpp 
 )
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 

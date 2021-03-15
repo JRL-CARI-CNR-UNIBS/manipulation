@@ -13,10 +13,11 @@ notifications:
 env:
   global:
     - UPSTREAM_WORKSPACE='manipulation.rosinstall -manipulation_utils'
+    - ROS_PARALLEL_JOBS='-j4'
   matrix:
     - ROS_DISTRO=noetic ROS_REPO=ros
-    - ROS_DISTRO=noetic ROS_REPO=ros-testing
-    - ROS_DISTRO=noetic DOWNSTREAM_WORKSPACE='manipulation.rosinstall -manipulation_utils -manipualtion_msgs'
+    #- ROS_DISTRO=noetic ROS_REPO=ros-testing
+    #- ROS_DISTRO=noetic DOWNSTREAM_WORKSPACE='manipulation.rosinstall -manipulation_utils -manipualtion_msgs'
 install:
   - git clone --quiet --depth 1 https://github.com/ros-industrial/industrial_ci.git .industrial_ci -b master
 script:

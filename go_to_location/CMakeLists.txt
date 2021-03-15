@@ -38,14 +38,3 @@ target_link_libraries(${PROJECT_NAME}_server
   ${catkin_LIBRARIES}
 )
 
-add_executable(       ${PROJECT_NAME}_client src/go_to_location_client_node.cpp)
-add_dependencies(     ${PROJECT_NAME}_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_client
-  ${catkin_LIBRARIES}
-)
-
-add_executable(       ${PROJECT_NAME}_loader src/go_to_location_loader_node.cpp)
-add_dependencies(     ${PROJECT_NAME}_loader ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_loader
-  ${catkin_LIBRARIES}
-)

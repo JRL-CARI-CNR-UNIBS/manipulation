@@ -40,7 +40,7 @@ namespace manipulation
                             const ros::NodeHandle& pnh):
                             m_nh(nh),
                             m_pnh(pnh),
-                            SkillBase(nh,pnh)
+                            SkillBase(nh,pnh,"pick")
   {
     // nothing to do here     
   }
@@ -208,41 +208,64 @@ namespace manipulation
     manipulation_msgs::PickObjectsResult action_res;
     std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PickObjectsAction>> as = m_pick_servers.at(group_name);
     
+    if (goal->object_names.size() == 0 &&  goal->object_types.size() == 0)
+    {
+      action_res.result = manipulation_msgs::PickObjectsResult::NoObjectsFound;
+      ROS_ERROR("No object_names nor object_types found in PickObjectsAction goal");
+      as->setAborted(action_res,"no object_names or object_types found in PickObjectsAction goal");
+      return;
+    }
+
     try
     {
       ros::Time t_start = ros::Time::now();
       
       std::vector<std::string> possible_boxes_names;
-      for (const std::string& type_name: goal->object_types)
+      if (goal->object_names.size() > 0)
       {
-        ROS_INFO("Adding object %s to the picking list.", type_name.c_str());
-        for (std::map<std::string,BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); it++)
+        for (const std::string& object_name: goal->object_names)
         {
-          std::vector<ObjectPtr> objects = it->second->getObjectsByType(type_name);
-          if (objects.size() != 0)
-            possible_boxes_names.push_back(it->second->getLocationName());
+          ROS_INFO("Adding object %s to the picking list.", object_name.c_str());
+          for (std::map<std::string,BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); it++)
+          {
+            if (it->second->findObject(object_name))
+              possible_boxes_names.push_back(it->second->getLocationName());
+          }
         }
       }
-  
-      std::string tool_name = m_tool_names.at(group_name);
 
-      ROS_INFO("Found %zu boxes",possible_boxes_names.size());
-
+      if (goal->object_types.size() > 0 && possible_boxes_names.size() == 0)
+      {
+        for (const std::string& type_name: goal->object_types)
+        {
+          ROS_INFO("Adding objects of the type %s to the picking list.", type_name.c_str());
+          for (std::map<std::string,BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); it++)
+          {
+            std::vector<ObjectPtr> objects = it->second->getObjectsByType(type_name);
+            if (objects.size() != 0)
+              possible_boxes_names.push_back(it->second->getLocationName());
+          }
+        }
+      }
+      
       if (possible_boxes_names.size() == 0)
       {
         action_res.result = manipulation_msgs::PickObjectsResult::NoInboundBoxFound;
-        ROS_ERROR("No objects found");
-        as->setAborted(action_res,"no objects found");
+        ROS_ERROR("No box found");
+        as->setAborted(action_res,"no box found");
         return;
       }
+      ROS_INFO("Found %zu boxes",possible_boxes_names.size());
 
       if (!m_groups.at(group_name)->startStateMonitor(2))
       {
         ROS_ERROR("%s: unable to get actual state",m_pnh.getNamespace().c_str());
         action_res.result = manipulation_msgs::PickObjectsResult::SceneError;
-        as->setAborted(action_res,"no objects found");
+        as->setAborted(action_res,"unable to get actual state");
         return;
       }
+
+      std::string tool_name = m_tool_names.at(group_name);
 
       moveit::core::JointModelGroup* jmg = m_joint_models.at(group_name);
       robot_state::RobotState state = *m_groups.at(group_name)->getCurrentState();
@@ -442,14 +465,18 @@ namespace manipulation
 
       ROS_INFO("Group %s: attached collision object %s to tool %s",group_name.c_str(),attach_srv.request.obj_id.c_str(),attach_srv.request.link_name.c_str());
 
-      std_srvs::SetBool grasp_req;
-      grasp_req.request.data = 1;
-      m_grasp_srv.call(grasp_req);
-      // grasp_req.response.success;
-      ros::Duration(1).sleep();
+      // TO BE CHANGED WITH new SkillFeedback
+      // // // std_srvs::SetBool grasp_req;
+      // // // grasp_req.request.data = 1;
+      // // // m_grasp_srv.call(grasp_req);
+      // // // // grasp_req.response.success;
+      // // // ros::Duration(1).sleep();
 
       action_res.grasping_object_duration = (ros::Time::now()-t_grasp_init);
 
+      if(!manipulation::removeLocation(m_pnh,selected_object->getName()))
+        ROS_WARN("Unable to remove object %s from LocationManager after gripper attach.", selected_object->getName());
+      
       Eigen::VectorXd object_leave_jconf;
       std::string best_leave_location_name;
       std::vector<std::string> best_object_location_names(1, best_object_location_name);

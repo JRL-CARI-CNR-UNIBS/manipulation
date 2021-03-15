@@ -41,7 +41,7 @@ namespace manipulation
                               const ros::NodeHandle& pnh):
                               m_nh(nh),
                               m_pnh(pnh),
-                              SkillBase(nh,pnh)
+                              SkillBase(nh,pnh,"place")
   {
 
   }
@@ -244,8 +244,7 @@ namespace manipulation
         return;
       }
 
-      std::string obj_type = goal->object_type;
-      std::string obj_name = goal->object_name;
+      std::string object_name = goal->object_name;
 
       moveit::core::JointModelGroup* jmg = m_joint_models.at(group_name);
       robot_state::RobotState state = *m_groups.at(group_name)->getCurrentState();
@@ -330,7 +329,7 @@ namespace manipulation
       if (!result)
       {
         action_res.result = manipulation_msgs::PlaceObjectsResult::NoAvailableTrajectories;
-        ROS_ERROR("Group %s: error in plan to release the object %s in the slot %s, code = %d", group_name.c_str(), obj_name.c_str(), best_slot_name.c_str(), result.val);
+        ROS_ERROR("Group %s: error in plan to release the object %s in the slot %s, code = %d", group_name.c_str(), object_name.c_str(), best_slot_name.c_str(), result.val);
         as->setAborted(action_res,"error in planning for placing");
         return;
       }
@@ -367,7 +366,7 @@ namespace manipulation
       tf::poseEigenToMsg(m_locations.at(selected_slot->getLocationName())->getLocation(),target.pose);
       m_target_pub.publish(target);
 
-      ROS_INFO("Execute move to leave position. Group %s, object name %s",group_name.c_str(), obj_name.c_str());
+      ROS_INFO("Execute move to leave position. Group %s, object name %s",group_name.c_str(), object_name.c_str());
       if(!execute(group_name, plan))
       {
         action_res.result = manipulation_msgs::PlaceObjectsResult::TrajectoryError;
@@ -393,7 +392,7 @@ namespace manipulation
       ros::Duration(0.5).sleep();
 
       object_loader_msgs::detachObject detach_srv;
-      detach_srv.request.obj_id = obj_name;
+      detach_srv.request.obj_id = object_name;
       if (!m_detach_object_srv.call(detach_srv))
       {
         action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
@@ -411,12 +410,16 @@ namespace manipulation
 
       ROS_INFO("Group %s: detached object %s ", group_name.c_str(), detach_srv.request.obj_id.c_str());
 
-      std_srvs::SetBool grasp_req;
-      grasp_req.request.data = 0;
-      m_grasp_srv.call(grasp_req);
-      ros::Duration(0.5).sleep();
+      // TO BE CHANGED WITH new SkillFeedback
+      // // // std_srvs::SetBool grasp_req;
+      // // // grasp_req.request.data = 0;
+      // // // m_grasp_srv.call(grasp_req);
+      // // // ros::Duration(0.5).sleep();
 
       action_res.release_object_duration = ros::Time::now() - t_release_init;
+
+      if(!manipulation::removeLocation(m_pnh,object_name))
+        ROS_WARN("Unable to remove object %s from LocationManager after gripper detach.", object_name.c_str());
 
       if (!m_groups.at(group_name)->startStateMonitor(2))
       {
@@ -464,7 +467,7 @@ namespace manipulation
       tf::poseEigenToMsg(m_locations.at(selected_slot->getLocationName())->getLeave(),target.pose);
       m_target_pub.publish(target);
 
-      ROS_INFO("Execute move to leave after object release. Group %s, Object name %s", group_name.c_str(), obj_name.c_str());
+      ROS_INFO("Execute move to leave after object release. Group %s, Object name %s", group_name.c_str(), object_name.c_str());
       if(!execute(group_name, plan))
       {
         action_res.result = manipulation_msgs::PlaceObjectsResult::TrajectoryError;

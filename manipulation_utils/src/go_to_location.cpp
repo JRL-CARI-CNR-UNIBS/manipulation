@@ -35,7 +35,7 @@ GoToLocation::GoToLocation( const ros::NodeHandle& nh,
                             const ros::NodeHandle& pnh):
                             m_nh(nh),
                             m_pnh(pnh),
-                            SkillBase(nh,pnh)
+                            SkillBase(nh,pnh,"go_to")
 {
   // nothing to do here    
 }

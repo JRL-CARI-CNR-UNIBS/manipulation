@@ -1,4 +1,5 @@
- string location_name
+#Name of the location where the manipualtor has to move  
+string location_name
 ---
 int8 result
 int8 SceneError=-1

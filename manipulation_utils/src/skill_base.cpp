@@ -30,14 +30,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <std_srvs/SetBool.h>
 
+#include <manipulation_msgs/SkillFeedback.h>
+
 #include <manipulation_utils/skill_base.h>
 
 namespace manipulation
 {
   SkillBase::SkillBase( const ros::NodeHandle& nh,
-                        const ros::NodeHandle& pnh):
+                        const ros::NodeHandle& pnh,
+                        const std::string& skill_name):
                         m_nh(nh),
                         m_pnh(pnh),
+                        m_skill_name(skill_name),
                         m_init(false),
                         LocationManager(pnh)
   {
@@ -49,7 +53,7 @@ namespace manipulation
     if (!LocationManager::init())
       m_init = false;
 
-    m_grasp_srv = m_pnh.serviceClient<std_srvs::SetBool>("gripper/grasp");    
+    m_skill_srv = m_pnh.serviceClient<manipulation_msgs::SkillFeedback>("skill/"+m_skill_name);    
     m_target_pub = m_pnh.advertise<geometry_msgs::PoseStamped>("target",1);
 
     m_init = true;

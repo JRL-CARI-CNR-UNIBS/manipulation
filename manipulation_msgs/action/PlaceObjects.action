@@ -1,5 +1,7 @@
-string object_type
+#Name of the object that need to be places in a slot
 string object_name
+#Vector of slots names where the object can be placed
+#it is necessary to provide at least one valid slot name
 string[] slot_names
 ---
 int8 result

@@ -52,8 +52,10 @@ namespace manipulation
       ros::NodeHandle m_nh;
       ros::NodeHandle m_pnh; 
 
+      std::string m_skill_name;
+
       ros::Publisher m_target_pub;
-      ros::ServiceClient m_grasp_srv;
+      ros::ServiceClient m_skill_srv;
 
       tf::TransformBroadcaster m_broadcaster;
 
@@ -68,7 +70,8 @@ namespace manipulation
 
     public:
       SkillBase(const ros::NodeHandle& nh,
-                const ros::NodeHandle& pnh);
+                const ros::NodeHandle& pnh,
+                const std::string& skill_name);
 
       bool init();
 

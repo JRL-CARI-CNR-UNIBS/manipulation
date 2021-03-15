@@ -43,6 +43,7 @@ add_service_files(
   RemoveSlots.srv
   ResetBoxes.srv
   ResetSlots.srv
+  SkillFeedback.srv
   )
 
 add_action_files(
