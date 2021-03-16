@@ -1,0 +1,14 @@
+#Name of the skill 
+string skill_name
+#Name of the tool be used to execute the skill
+string tool_id
+#Property of the tool to be applied to the tool in use 
+int8 property_id
+---
+int8 results
+int8 Success=0
+int8 SkillNotFound=-1
+int8 ToolIdNotFound=-2
+int8 PropertyIdNotFound=-3
+int8 HwError=-4
+int8 TimeoutError=-5

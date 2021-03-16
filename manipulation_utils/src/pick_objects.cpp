@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <manipulation_msgs/PickObjectsResult.h>
 #include <manipulation_utils/pick_objects.h>
 
-#include <object_loader_msgs/attachObject.h>
+#include <object_loader_msgs/AttachObject.h>
 
 #include <moveit/planning_interface/planning_interface.h>
 #include <moveit_planning_helper/manage_trajectories.h>
@@ -56,7 +56,7 @@ namespace manipulation
     m_list_objects_srv = m_pnh.advertiseService("list_objects",&PickObjects::listObjectsCb,this);
     m_reset_srv = m_pnh.advertiseService("inboud/reset_box",&PickObjects::resetBoxesCb,this);
 
-    m_attach_object_srv = m_nh.serviceClient<object_loader_msgs::attachObject>("attach_object_to_link");
+    m_attach_object_srv = m_nh.serviceClient<object_loader_msgs::AttachObject>("attach_object_to_link");
     m_attach_object_srv.waitForExistence();
 
     for (const std::string& group_name: m_group_names)
@@ -445,37 +445,52 @@ namespace manipulation
       ros::Time t_grasp_init = ros::Time::now();
       ros::Duration(0.5).sleep();
 
-      object_loader_msgs::attachObject attach_srv;
+      object_loader_msgs::AttachObject attach_srv;
       attach_srv.request.obj_id = selected_object->getName();
       attach_srv.request.link_name = selected_grasp_pose->getToolName();
       if (!m_attach_object_srv.call(attach_srv))
       {
-        action_res.result = manipulation_msgs::PickObjectsResult::NoObjectsFound;
+        action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
         ROS_ERROR("Unaspected error calling %s service",m_attach_object_srv.getService().c_str());
         as->setAborted(action_res,"unaspected error calling attach server");
         return;
       }
       if (!attach_srv.response.success)
       {
-        action_res.result = manipulation_msgs::PickObjectsResult::NoObjectsFound;
-        ROS_ERROR("Unable to attach object");
+        action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
+        ROS_ERROR("Unable to attach object %s",best_object_name.c_str());
         as->setAborted(action_res,"unable to attach object");
         return;
       }
 
       ROS_INFO("Group %s: attached collision object %s to tool %s",group_name.c_str(),attach_srv.request.obj_id.c_str(),attach_srv.request.link_name.c_str());
 
-      // TO BE CHANGED WITH new SkillFeedback
-      // // // std_srvs::SetBool grasp_req;
-      // // // grasp_req.request.data = 1;
-      // // // m_grasp_srv.call(grasp_req);
-      // // // // grasp_req.response.success;
-      // // // ros::Duration(1).sleep();
+      manipulation_msgs::JobExecution job_req;
+      job_req.request.skill_name = "pick";
+      job_req.request.tool_id = goal->tool_id;
+      job_req.request.property_id = goal->property_id;
+
+      if (!m_job_srv.call(job_req))
+      {
+        action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
+        ROS_ERROR("Unable to call %s service for object %s",m_job_srv.getService().c_str(), best_object_name.c_str());
+        as->setAborted(action_res,"unable to call JobExecution service");
+        return;
+      }
+      if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
+      {
+        action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
+        ROS_ERROR("Error on service %s result for object name %s, error: %d", m_job_srv.getService().c_str(),
+                                                                              best_object_name.c_str(),
+                                                                              job_req.response.results);
+        as->setAborted(action_res,"error on service JobExecution result");
+        return;
+      }
 
       action_res.grasping_object_duration = (ros::Time::now()-t_grasp_init);
 
       if(!manipulation::removeLocation(m_pnh,selected_object->getName()))
-        ROS_WARN("Unable to remove object %s from LocationManager after gripper attach.", selected_object->getName());
+        ROS_WARN("Unable to remove object %s from LocationManager after gripper attach.", selected_object->getName().c_str());
       
       Eigen::VectorXd object_leave_jconf;
       std::string best_leave_location_name;

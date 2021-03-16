@@ -30,8 +30,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <std_srvs/SetBool.h>
 
-#include <manipulation_msgs/SkillFeedback.h>
-
 #include <manipulation_utils/skill_base.h>
 
 namespace manipulation
@@ -53,8 +51,10 @@ namespace manipulation
     if (!LocationManager::init())
       m_init = false;
 
-    m_skill_srv = m_pnh.serviceClient<manipulation_msgs::SkillFeedback>("skill/"+m_skill_name);    
     m_target_pub = m_pnh.advertise<geometry_msgs::PoseStamped>("target",1);
+
+    m_job_srv = m_pnh.serviceClient<manipulation_msgs::JobExecution>("job/"+m_skill_name); 
+    m_job_srv.waitForExistence();
 
     m_init = true;
     return m_init;

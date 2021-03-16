@@ -212,11 +212,11 @@ bool LocationManager::init()
     chain->setInputJointsName(jmg->getActiveJointModelNames());
     m_chains.insert(std::pair<std::string,rosdyn::ChainPtr>(group_name,chain));
 
-    size_t n_joints=jmg->getActiveJointModelNames().size();
+    size_t n_joints = jmg->getActiveJointModelNames().size();
     std::vector<double> tmp;
     if (m_nh.getParam(group_name+"/preferred_configuration",tmp))
     {
-      assert(tmp.size()==n_joints);
+      assert(tmp.size() == n_joints);
       Eigen::VectorXd preferred_position(n_joints);
       for (size_t idof=0; idof<n_joints; idof++)
         preferred_position(idof) = tmp.at(idof);
@@ -225,7 +225,7 @@ bool LocationManager::init()
       m_preferred_configuration.insert(std::pair<std::string,Eigen::VectorXd>(group_name,preferred_position));
       if (m_nh.getParam(group_name+"/preferred_configuration_weight",tmp))
       {
-        assert(tmp.size()==n_joints);
+        assert(tmp.size() == n_joints);
         Eigen::VectorXd preferred_position_weight(n_joints);
         for (size_t idof=0; idof<n_joints; idof++)
           preferred_position_weight(idof) = tmp.at(idof);

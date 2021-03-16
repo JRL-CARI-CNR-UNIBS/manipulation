@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <control_msgs/FollowJointTrajectoryGoal.h>
 #include <control_msgs/FollowJointTrajectoryResult.h>
 
+#include <manipulation_msgs/JobExecution.h>
 #include <manipulation_utils/location.h>
 
 #include <moveit/move_group_interface/move_group_interface.h>
@@ -55,7 +56,7 @@ namespace manipulation
       std::string m_skill_name;
 
       ros::Publisher m_target_pub;
-      ros::ServiceClient m_skill_srv;
+      ros::ServiceClient m_job_srv;
 
       tf::TransformBroadcaster m_broadcaster;
 

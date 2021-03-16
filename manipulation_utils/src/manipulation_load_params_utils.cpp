@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tf/transform_listener.h>
 #include <tf_conversions/tf_eigen.h>
 #include <rosparam_utilities/rosparam_utilities.h>
-#include <object_loader_msgs/addObjects.h>
+#include <object_loader_msgs/AddObjects.h>
 
 #include <manipulation_msgs/Box.h>
 #include <manipulation_msgs/Grasp.h>
@@ -51,7 +51,7 @@ InboundPickFromParam::InboundPickFromParam( const ros::NodeHandle &nh):
 {
   add_objs_client_ = nh_.serviceClient<manipulation_msgs::AddObjects>("add_objects");
   add_box_client_ = nh_.serviceClient<manipulation_msgs::AddBoxes>("add_boxes");
-  add_objs_to_scene_client_ = nh_.serviceClient<object_loader_msgs::addObjects>("/add_object_to_scene");
+  add_objs_to_scene_client_ = nh_.serviceClient<object_loader_msgs::AddObjects>("/add_object_to_scene");
   
   ROS_INFO("Waiting for: %s server", add_objs_client_.getService().c_str());
   add_objs_client_.waitForExistence();
@@ -218,7 +218,7 @@ bool InboundPickFromParam::readObjectFromParam()
   }
   ROS_INFO("There are %d objects",config.size());
 
-  object_loader_msgs::addObjects srv;
+  object_loader_msgs::AddObjects srv;
   std::map<std::string,std::shared_ptr<manipulation_msgs::AddObjects>> add_objs_srv;
 
   int obj_type_idx = 0;
@@ -412,7 +412,7 @@ bool InboundPickFromParam::readObjectFromParam()
       obj.grasping_locations.push_back(grasp_obj);
     }
 
-    object_loader_msgs::object col_obj;
+    object_loader_msgs::Object col_obj;
     tf::poseEigenToMsg(T_w_object,col_obj.pose.pose);
     col_obj.pose.header.frame_id = "world";
     col_obj.object_type = type;

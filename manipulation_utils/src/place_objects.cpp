@@ -30,8 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <manipulation_utils/place_objects.h>
 
-#include <object_loader_msgs/detachObject.h>
-#include <object_loader_msgs/removeObjects.h>
+#include <object_loader_msgs/DetachObject.h>
+#include <object_loader_msgs/RemoveObjects.h>
 
 #include <moveit_planning_helper/manage_trajectories.h>
 
@@ -56,10 +56,10 @@ namespace manipulation
     m_remove_obj_from_slot_srv = m_pnh.advertiseService("remove_obj_from_slot",&PlaceObjects::removeObjectFromSlotCb,this);
     m_reset_slots_srv = m_pnh.advertiseService("outbound/reset",&PlaceObjects::resetSlotsCb,this);
 
-    m_detach_object_srv = m_nh.serviceClient<object_loader_msgs::detachObject>("detach_object_to_link");
+    m_detach_object_srv = m_nh.serviceClient<object_loader_msgs::DetachObject>("detach_object_to_link");
     m_detach_object_srv.waitForExistence();
 
-    m_remove_object_from_scene_srv = m_nh.serviceClient<object_loader_msgs::removeObjects>("remove_object_from_scene");
+    m_remove_object_from_scene_srv = m_nh.serviceClient<object_loader_msgs::RemoveObjects>("remove_object_from_scene");
     m_remove_object_from_scene_srv.waitForExistence();
 
     for (const std::string& group_name: m_group_names)
@@ -142,7 +142,7 @@ namespace manipulation
   {
     if(m_slots.find(req.slot_name) != m_slots.end())
     {
-      object_loader_msgs::removeObjects remove_srv;
+      object_loader_msgs::RemoveObjects remove_srv;
       remove_srv.request.obj_ids.push_back(req.object_to_remove_name);
       ROS_INFO("Remove %s",req.object_to_remove_name.c_str());
       if (!m_remove_object_from_scene_srv.call(remove_srv))
@@ -391,7 +391,7 @@ namespace manipulation
       ros::Time t_release_init = ros::Time::now();
       ros::Duration(0.5).sleep();
 
-      object_loader_msgs::detachObject detach_srv;
+      object_loader_msgs::DetachObject detach_srv;
       detach_srv.request.obj_id = object_name;
       if (!m_detach_object_srv.call(detach_srv))
       {
@@ -407,19 +407,31 @@ namespace manipulation
         as->setAborted(action_res,"unable to detach object");
         return;
       }
-
       ROS_INFO("Group %s: detached object %s ", group_name.c_str(), detach_srv.request.obj_id.c_str());
 
-      // TO BE CHANGED WITH new SkillFeedback
-      // // // std_srvs::SetBool grasp_req;
-      // // // grasp_req.request.data = 0;
-      // // // m_grasp_srv.call(grasp_req);
-      // // // ros::Duration(0.5).sleep();
+      manipulation_msgs::JobExecution job_req;
+      job_req.request.skill_name = "place";
+      job_req.request.tool_id = goal->tool_id;
+      job_req.request.property_id = goal->property_id;
+
+      if (!m_job_srv.call(job_req))
+      {
+        action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
+        ROS_ERROR("Unable to call %s service for object %s",m_job_srv.getService().c_str(),goal->object_name.c_str());
+        as->setAborted(action_res,"unable to call JobExecution service");
+        return;
+      }
+      if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
+      {
+        action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
+        ROS_ERROR("Error on service %s result for object name %s, error: %d", m_job_srv.getService().c_str(),
+                                                                              goal->object_name.c_str(),
+                                                                              job_req.response.results);
+        as->setAborted(action_res,"error on service JobExecution result");
+        return;
+      }
 
       action_res.release_object_duration = ros::Time::now() - t_release_init;
-
-      if(!manipulation::removeLocation(m_pnh,object_name))
-        ROS_WARN("Unable to remove object %s from LocationManager after gripper detach.", object_name.c_str());
 
       if (!m_groups.at(group_name)->startStateMonitor(2))
       {

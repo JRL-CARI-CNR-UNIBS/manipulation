@@ -35,6 +35,7 @@ add_service_files(
   AddObjects.srv
   AddLocations.srv
   AddSlots.srv
+  JobExecution.srv
   ListOfObjects.srv
   RemoveBoxes.srv
   RemoveLocations.srv
@@ -43,7 +44,6 @@ add_service_files(
   RemoveSlots.srv
   ResetBoxes.srv
   ResetSlots.srv
-  SkillFeedback.srv
   )
 
 add_action_files(
