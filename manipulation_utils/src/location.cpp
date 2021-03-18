@@ -105,7 +105,7 @@ LocationManager::LocationManager( const ros::NodeHandle& nh):
 
 bool LocationManager::init()
 {
-  ROS_INFO("Init Location Manager.");
+  ROS_INFO("Init Location Manager. Using namespace %s", m_nh.getNamespace().c_str());
 
   robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
   m_kinematic_model = robot_model_loader.getModel();
@@ -311,21 +311,21 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
     std::vector<Eigen::VectorXd> sols;
     std::vector<Eigen::VectorXd> seed;
 
-    if (!m_nh.hasParam("slot_ik/"+location_ptr->m_name+"/"+group.first))
+    if (!m_nh.hasParam(location_ptr->m_name+"/"+group.first))
     {
       if (!ik(group.first,location_ptr->m_T_w_location,seed,sols,m_ik_sol_number))
       {
         ROS_WARN("Location %s can't be reached by group %s",location_ptr->m_name.c_str(),group.first.c_str());
         continue;
       }
-      rosparam_utilities::setParam(m_nh,std::string("slot_ik/"+location_ptr->m_name+"/"+group.first),sols);
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/"+group.first),sols);
     }
     else
     {
       std::string what;
-      if (!rosparam_utilities::getParam(m_nh,"slot_ik/"+location_ptr->m_name+"/"+group.first,sols,what))
+      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/"+group.first,sols,what))
       {
-        ROS_ERROR("parameter %s/slot_ik/%s/%s is not correct",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+        ROS_ERROR("Parameter %s/%s/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
         return false;
       }
     }
@@ -334,21 +334,21 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
     if (sols.size() != 0)
       seed.push_back(sols.at(0));
 
-    if (!m_nh.hasParam("slot_ik/"+location_ptr->m_name+"/approach/"+group.first))
+    if (!m_nh.hasParam(location_ptr->m_name+"/approach/"+group.first))
     {
       if (!ik(group.first,location_ptr->m_T_w_approach,seed,sols,m_ik_sol_number))
       {
         ROS_WARN("Approach to location %s can't be reached by group %s",location_ptr->m_name.c_str(),group.first.c_str());
         continue;
       }
-      rosparam_utilities::setParam(m_nh,std::string("slot_ik/"+location_ptr->m_name+"/approach/"+group.first),sols);
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/approach/"+group.first),sols);
     }
     else
     {
       std::string what;
-      if (!rosparam_utilities::getParam(m_nh,"slot_ik/"+location_ptr->m_name+"/"+group.first,sols,what))
+      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/approach/"+group.first,sols,what))
       {
-        ROS_ERROR("parameter %s/slot_ik/%s/approach/%s is not correct",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+        ROS_ERROR("Parameter %s/%s/approach/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
         return false;
       }
     }
@@ -361,21 +361,21 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
       seed.push_back(sols.at(0));
     }
       
-    if (!m_nh.hasParam("slot_ik/"+location_ptr->m_name+"/leave/"+group.first))
+    if (!m_nh.hasParam(location_ptr->m_name+"/leave/"+group.first))
     {  
       if (!ik(group.first,location_ptr->m_T_w_leave,seed,sols,m_ik_sol_number))
       {
         ROS_WARN("Leave from location %s can't be reached by group %s",location_ptr->m_name.c_str(),group.first.c_str());
         continue;
       }
-      rosparam_utilities::setParam(m_nh,std::string("slot_ik/"+location_ptr->m_name+"/leave/"+group.first),sols);
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/leave/"+group.first),sols);
     }
     else
     {
       std::string what;
-      if (!rosparam_utilities::getParam(m_nh,"slot_ik/"+location_ptr->m_name+"/"+group.first,sols,what))
+      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/leave/"+group.first,sols,what))
       {
-        ROS_ERROR("parameter %s/slot_ik/%s/leave/%s is not correct",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+        ROS_ERROR("Parameter %s/%s/leave/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
         return false;
       }
     }
@@ -551,9 +551,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
 
     res.trajectory_->getRobotTrajectoryMsg(plan.trajectory_);
     if (res.trajectory_->getWayPointCount()==0)
-    {
       ROS_WARN("Trajectory has 0 waypoint");
-    }
     else
       res.trajectory_->getLastWayPoint().copyJointGroupPositions(jmg,final_configuration);
 
@@ -566,6 +564,8 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
     plan_to_location_name = location_names.at(std::min_element(min_dist.begin(),min_dist.end()) - min_dist.begin());
     ROS_INFO("Planning completed. Selected location: %s", plan_to_location_name.c_str());
 
+    Eigen::Affine3d loc_ = m_locations.at(plan_to_location_name)->getLocation();  
+    
     return plan;
   }
   catch(const std::exception& ex)

@@ -9,6 +9,7 @@ string tool_id
 int8 property_id
 ---
 int8 result
+string slot_name
 int8 Success=0
 int8 NotInitialized=-1
 int8 Full=-2

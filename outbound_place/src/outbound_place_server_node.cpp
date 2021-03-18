@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 
   if (!place.init())
   {
-    ROS_ERROR_NAMED(nh.getNamespace(),"unable to load parameter");
+    ROS_ERROR("Unable to init Place server.");
     return -1;
   }
 

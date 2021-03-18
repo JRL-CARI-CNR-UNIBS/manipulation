@@ -408,6 +408,7 @@ bool InboundPickFromParam::readObjectFromParam()
       tf::poseEigenToMsg(T_w_grasp,grasp_obj.location.pose);
       tf::poseEigenToMsg(T_grasp_approach,grasp_obj.location.approach_relative_pose);
       tf::poseEigenToMsg(T_grasp_approach,grasp_obj.location.leave_relative_pose);
+
       grasp_obj.tool_name = tool_name;
       obj.grasping_locations.push_back(grasp_obj);
     }

@@ -35,12 +35,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace manipulation
 {
   SkillBase::SkillBase( const ros::NodeHandle& nh,
-                        const ros::NodeHandle& pnh,
-                        const std::string& skill_name):
+                        const ros::NodeHandle& pnh):
                         m_nh(nh),
                         m_pnh(pnh),
-                        m_skill_name(skill_name),
-                        m_init(false),
                         LocationManager(pnh)
   {
     // nothing to do ...
@@ -49,15 +46,14 @@ namespace manipulation
   bool SkillBase::init()
   {
     if (!LocationManager::init())
-      m_init = false;
-
+    {
+      ROS_ERROR("Unable to init SkillBase");
+      return false;
+    }
+      
     m_target_pub = m_pnh.advertise<geometry_msgs::PoseStamped>("target",1);
 
-    m_job_srv = m_pnh.serviceClient<manipulation_msgs::JobExecution>("job/"+m_skill_name); 
-    m_job_srv.waitForExistence();
-
-    m_init = true;
-    return m_init;
+    return true;
   }
 
   bool SkillBase::execute(const std::string& group_name,

@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 
   if (!go_to.init())
   {
-    ROS_ERROR_NAMED(nh.getNamespace(),"unable to load parameter");
+    ROS_ERROR("Unable to init GoToLocation server.");
     return -1;
   }
 

@@ -40,7 +40,7 @@ namespace manipulation
                             const ros::NodeHandle& pnh):
                             m_nh(nh),
                             m_pnh(pnh),
-                            SkillBase(nh,pnh,"pick")
+                            SkillBase(nh,pnh)
   {
     // nothing to do here     
   }
@@ -59,18 +59,29 @@ namespace manipulation
     m_attach_object_srv = m_nh.serviceClient<object_loader_msgs::AttachObject>("attach_object_to_link");
     m_attach_object_srv.waitForExistence();
 
-    for (const std::string& group_name: m_group_names)
-    { 
-      std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PickObjectsAction>> as;
-      as.reset(new actionlib::SimpleActionServer<manipulation_msgs::PickObjectsAction>( m_pnh,
-                                                                                        group_name+"/pick",
-                                                                                        boost::bind(&PickObjects::pickObjectGoalCb, this, _1, group_name),
-                                                                                        false));
-      m_pick_servers.insert(std::pair<std::string,std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PickObjectsAction>>>(group_name,as));
+    m_job_srv = m_pnh.serviceClient<manipulation_msgs::JobExecution>("job/pick"); 
+    m_job_srv.waitForExistence();
 
-      m_pick_servers.at(group_name)->start();
+    if (m_group_names.size() > 0)
+    {
+      for (const std::string& group_name: m_group_names)
+      { 
+        std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PickObjectsAction>> as;
+        as.reset(new actionlib::SimpleActionServer<manipulation_msgs::PickObjectsAction>( m_pnh,
+                                                                                          group_name+"/pick",
+                                                                                          boost::bind(&PickObjects::pickObjectGoalCb, this, _1, group_name),
+                                                                                          false));
+        m_pick_servers.insert(std::pair<std::string,std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PickObjectsAction>>>(group_name,as));
+
+        m_pick_servers.at(group_name)->start();
+      }
     }
-    
+    else
+    {
+      ROS_ERROR("The group_names vector is empty, no ActionServer can be created for PickObjects Skill."); 
+      return false;
+    }
+      
     return true;
   }
 
@@ -220,7 +231,10 @@ namespace manipulation
     {
       ros::Time t_start = ros::Time::now();
       
-      std::vector<std::string> possible_boxes_names;
+      std::vector<std::string> possible_boxes_location_names;
+      std::vector<std::string> possible_object_location_names;
+
+      //Check which boxes contain the objects with a predefined name
       if (goal->object_names.size() > 0)
       {
         for (const std::string& object_name: goal->object_names)
@@ -229,12 +243,24 @@ namespace manipulation
           for (std::map<std::string,BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); it++)
           {
             if (it->second->findObject(object_name))
-              possible_boxes_names.push_back(it->second->getLocationName());
+            {
+              possible_boxes_location_names.push_back(it->second->getLocationName());
+              
+              manipulation::ObjectPtr object = it->second->getObject(object_name);
+              std::vector<std::string> object_location_names = object->getGraspLocationNames();
+              if (object_location_names.size() != 0)
+                possible_object_location_names.insert(possible_object_location_names.end(),
+                                                      object_location_names.begin(),
+                                                      object_location_names.end()   );
+            }
+
           }
         }
       }
 
-      if (goal->object_types.size() > 0 && possible_boxes_names.size() == 0)
+      //Check which boxes contain the objects of a predefined type, 
+      //this research will be done only if research by object names fails
+      if (goal->object_types.size() > 0 && possible_boxes_location_names.size() == 0)
       {
         for (const std::string& type_name: goal->object_types)
         {
@@ -243,19 +269,19 @@ namespace manipulation
           {
             std::vector<ObjectPtr> objects = it->second->getObjectsByType(type_name);
             if (objects.size() != 0)
-              possible_boxes_names.push_back(it->second->getLocationName());
+              possible_boxes_location_names.push_back(it->second->getLocationName());
           }
         }
       }
       
-      if (possible_boxes_names.size() == 0)
+      if (possible_boxes_location_names.size() == 0)
       {
         action_res.result = manipulation_msgs::PickObjectsResult::NoInboundBoxFound;
         ROS_ERROR("No box found");
         as->setAborted(action_res,"no box found");
         return;
       }
-      ROS_INFO("Found %zu boxes",possible_boxes_names.size());
+      ROS_INFO("Found %zu boxes",possible_boxes_location_names.size());
 
       if (!m_groups.at(group_name)->startStateMonitor(2))
       {
@@ -279,13 +305,12 @@ namespace manipulation
       moveit::planning_interface::MoveItErrorCode result;
       Eigen::VectorXd box_approach_jconf;
 
-
       /* Planning to approach position for picking object */
 
       ros::Time t_planning_init = ros::Time::now();
       ROS_INFO("Planning to box approach position for object picking. Group %s",group_name.c_str());
       moveit::planning_interface::MoveGroupInterface::Plan plan = planTo( group_name,
-                                                                          possible_boxes_names,
+                                                                          possible_boxes_location_names,
                                                                           Location::Destination::Approach,
                                                                           actual_jconf,
                                                                           actual_jconf,
@@ -318,6 +343,7 @@ namespace manipulation
       geometry_msgs::PoseStamped target;
       target.header.frame_id = world_frame;
       target.header.stamp = ros::Time::now();
+
       tf::poseEigenToMsg(m_locations.at(selected_box->getLocationName())->getApproach(),target.pose);
       m_target_pub.publish(target);
       
@@ -331,24 +357,49 @@ namespace manipulation
       }
 
       /* Planning to picking object position */
-
-      std::vector<std::string> possible_object_location_names;
-
-      for (const std::string& type_name: goal->object_types)
+  
+      if (possible_object_location_names.size() != 0)
       {
-        std::vector<ObjectPtr> objects = selected_box->getObjectsByType(type_name);
-        for(const manipulation::ObjectPtr& object: objects)
+        // After box selection extract between preferred objects which is in the box 
+        std::vector<std::string> possible_objects_in_selected_box;
+        for (const std::string& object_location_name: possible_object_location_names)
         {
-          std::vector<std::string> object_location_names = object->getGraspLocationNames();
-          if (object_location_names.size() != 0)
-            possible_object_location_names.insert(possible_object_location_names.end(),
-                                                  object_location_names.begin(),
-                                                  object_location_names.end()   );
+          // At least one object should be in the selected box
+          std::string object_name = selected_box->findObjectByGraspingLocation(object_location_name);
+          if (!object_name.empty())
+            possible_objects_in_selected_box.push_back(object_location_name);      
 
+          possible_object_location_names.clear();
+          possible_object_location_names.insert(possible_object_location_names.end(),
+                                                possible_objects_in_selected_box.begin(),
+                                                possible_objects_in_selected_box.end());  
+        } 
+      }
+      else
+      {
+        // In case of selection by object type instead of by object name
+        // extract which object is in the selected box
+        for (const std::string& type_name: goal->object_types)
+        {
+          std::vector<manipulation::ObjectPtr> objects = selected_box->getObjectsByType(type_name);
+          for(const manipulation::ObjectPtr& object: objects)
+          {
+            std::vector<std::string> object_location_names = object->getGraspLocationNames();
+            
+            for (const std::string& loc_name: object_location_names)
+              ROS_WARN("Added to possible object location %s", loc_name.c_str());
+            
+            
+            if (object_location_names.size() != 0)
+              possible_object_location_names.insert(possible_object_location_names.end(),
+                                                    object_location_names.begin(),
+                                                    object_location_names.end()   );
+          }
         }
       }
+      
 
-      if(possible_object_location_names.size()==0)
+      if(possible_object_location_names.size() == 0)
       {
         action_res.result = manipulation_msgs::PickObjectsResult::NoObjectsFound;
         ROS_ERROR("Can't find any object location names in the location manager.");
@@ -416,6 +467,7 @@ namespace manipulation
       disp_trj.trajectory.at(0) = (plan.trajectory_);
       disp_trj.trajectory_start = plan.start_state_;
       m_display_publisher.publish(disp_trj);
+
       tf::poseEigenToMsg(m_locations.at(best_object_location_name)->getLocation(),target.pose);
       m_target_pub.publish(target);
       
@@ -495,9 +547,13 @@ namespace manipulation
       Eigen::VectorXd object_leave_jconf;
       std::string best_leave_location_name;
       std::vector<std::string> best_object_location_names(1, best_object_location_name);
+      
       state = *m_groups.at(group_name)->getCurrentState();
       if (jmg)
         state.copyJointGroupPositions(jmg, actual_jconf);
+
+      ROS_WARN_STREAM("Previous joint configuration: " << object_grasp_jconf.matrix() );
+      ROS_WARN_STREAM("Actual joint configuration: " << actual_jconf.matrix() );
 
 
       /* Planning to leave position after object picking */
@@ -555,6 +611,7 @@ namespace manipulation
             
       action_res.object_type = selected_object->getType();
       action_res.object_name = selected_object->getName();
+      action_res.inbound_box = best_box_name;
       action_res.result = manipulation_msgs::PickObjectsResult::Success;
 
       action_res.actual_duration += (ros::Time::now()-t_start);

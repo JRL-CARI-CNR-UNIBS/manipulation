@@ -35,7 +35,7 @@ GoToLocation::GoToLocation( const ros::NodeHandle& nh,
                             const ros::NodeHandle& pnh):
                             m_nh(nh),
                             m_pnh(pnh),
-                            SkillBase(nh,pnh,"go_to")
+                            SkillBase(nh,pnh)
 {
   // nothing to do here    
 }
@@ -44,20 +44,27 @@ bool GoToLocation::init()
 {
   if (!SkillBase::init())  
     return false;
-    
-  // create groups
-  for (const std::string& group_name: m_group_names)
+
+  if(m_group_names.size() > 0)
   {
-    std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::GoToAction>> as;
-    as.reset(new actionlib::SimpleActionServer<manipulation_msgs::GoToAction>(m_pnh,group_name+"/go_to",
-                                                                              boost::bind(&GoToLocation::gotoGoalCb,this,_1,group_name),
-                                                                              false));
-    m_goto_location_server.insert(std::pair<std::string,std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::GoToAction>>>(group_name,as));
-    m_goto_location_server.at(group_name)->start();
+    for (const std::string& group_name: m_group_names)
+    {
+      std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::GoToAction>> as;
+      as.reset(new actionlib::SimpleActionServer<manipulation_msgs::GoToAction>(m_pnh,
+                                                                                group_name+"/go_to",
+                                                                                boost::bind(&GoToLocation::gotoGoalCb,this,_1,group_name),
+                                                                                false));
+      m_goto_location_server.insert(std::pair<std::string,std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::GoToAction>>>(group_name,as));
+      m_goto_location_server.at(group_name)->start();
+    }
   }
-
+  else
+  {
+    ROS_ERROR("The group_names vector is empty, no ActionServer can be created for GoToLocation Skill."); 
+    return false;
+  }
+  
   return true;
-
 }
 
 void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,

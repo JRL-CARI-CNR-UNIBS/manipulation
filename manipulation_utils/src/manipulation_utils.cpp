@@ -265,7 +265,6 @@ std::vector<ObjectPtr> Box::getObjectsByType(const std::string& object_type)
       objects.push_back(it->second);
   }  
   return objects;
-
 }
 
 Slot::Slot( const ros::NodeHandle& nh,

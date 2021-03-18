@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 
   if (!pick.init())
   {
-    ROS_ERROR_NAMED(nh.getNamespace(),"Unable to load parameters for node %s",pnh.getNamespace().c_str());
+    ROS_ERROR("Unable to init Pick server.");
     return -1;
   }
 

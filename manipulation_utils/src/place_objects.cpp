@@ -41,7 +41,7 @@ namespace manipulation
                               const ros::NodeHandle& pnh):
                               m_nh(nh),
                               m_pnh(pnh),
-                              SkillBase(nh,pnh,"place")
+                              SkillBase(nh,pnh)
   {
 
   }
@@ -62,18 +62,28 @@ namespace manipulation
     m_remove_object_from_scene_srv = m_nh.serviceClient<object_loader_msgs::RemoveObjects>("remove_object_from_scene");
     m_remove_object_from_scene_srv.waitForExistence();
 
-    for (const std::string& group_name: m_group_names)
-    {
-      std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PlaceObjectsAction>> as;
-      as.reset(new actionlib::SimpleActionServer<manipulation_msgs::PlaceObjectsAction>(m_pnh,
-                                                                                        group_name+"/place",
-                                                                                        boost::bind(&PlaceObjects::placeObjectGoalCb,this,_1,group_name),
-                                                                                        false));
-      m_place_servers.insert(std::pair<std::string,std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PlaceObjectsAction>>>(group_name,as));
-      
-      m_place_servers.at(group_name)->start();
-    }
+    m_job_srv = m_pnh.serviceClient<manipulation_msgs::JobExecution>("job/place"); 
+    m_job_srv.waitForExistence();
 
+    if (m_group_names.size() > 0)
+    {
+      for (const std::string& group_name: m_group_names)
+      {
+        std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PlaceObjectsAction>> as;
+        as.reset(new actionlib::SimpleActionServer<manipulation_msgs::PlaceObjectsAction>(m_pnh,
+                                                                                          group_name+"/place",
+                                                                                          boost::bind(&PlaceObjects::placeObjectGoalCb,this,_1,group_name),
+                                                                                          false));
+        m_place_servers.insert(std::pair<std::string,std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PlaceObjectsAction>>>(group_name,as));
+        m_place_servers.at(group_name)->start();
+      }
+    }
+    else
+    {
+      ROS_ERROR("The group_names vector is empty, no ActionServer can be created for PlaceObjects Skill."); 
+      return false;
+    }
+      
     return true;
   }
 
@@ -159,7 +169,7 @@ namespace manipulation
 
 
       m_slots.at(req.slot_name)->removeObjectFromSlot();
-      ROS_INFO("Removed %d from the slot %s.", req.object_to_remove_name, req.slot_name.c_str() );   
+      ROS_INFO("Removed %s from the slot %s.", req.object_to_remove_name.c_str(), req.slot_name.c_str() );   
     }
     else
     {
@@ -499,6 +509,7 @@ namespace manipulation
       }
 
       action_res.result = manipulation_msgs::PlaceObjectsResult::Success;
+      action_res.slot_name = best_slot_name;
       action_res.actual_duration = ros::Time::now() - t_start;
       as->setSucceeded(action_res,"ok");
 
