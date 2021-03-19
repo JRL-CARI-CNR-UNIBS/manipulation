@@ -552,10 +552,6 @@ namespace manipulation
       if (jmg)
         state.copyJointGroupPositions(jmg, actual_jconf);
 
-      ROS_WARN_STREAM("Previous joint configuration: " << object_grasp_jconf.matrix() );
-      ROS_WARN_STREAM("Actual joint configuration: " << actual_jconf.matrix() );
-
-
       /* Planning to leave position after object picking */
 
       t_planning_init = ros::Time::now();
