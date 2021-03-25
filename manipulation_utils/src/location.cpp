@@ -124,6 +124,8 @@ bool LocationManager::init()
     m_ik_sol_number = 200;
   }
 
+  m_max_stall_iter=m_nh.param("max_stall_iter",100);
+
   if (!m_nh.getParam("groups",m_tool_names))
   {
     ROS_ERROR("parameter %s/groups is not defined",m_nh.getNamespace().c_str());
@@ -655,11 +657,15 @@ bool LocationManager::ik( const std::string& group_name,
   unsigned int n_seed = seed.size();
   bool found = false;
 
+  int stall=0;
   for (unsigned int iter=0;iter<N_MAX_ITER;iter++)
   {
     if (solutions.size()>=ntrial)
       break;
     if (solutions.size()==0 && iter>ntrial*5)
+      break;
+
+    if (stall++>m_max_stall_iter)
       break;
 
     if (iter<n_seed)
@@ -693,6 +699,7 @@ bool LocationManager::ik( const std::string& group_name,
       
       if (solutions.size() == 0)
       {
+        stall=0;
         std::vector<Eigen::VectorXd> multiturn = m_chains.at(group_name)->getMultiplicity(js);
         for (const Eigen::VectorXd& tmp: multiturn)
         {
@@ -719,6 +726,7 @@ bool LocationManager::ik( const std::string& group_name,
         }
         if (is_diff)
         {
+          stall=0;
           std::vector<Eigen::VectorXd> multiturn = m_chains.at(group_name)->getMultiplicity(js);
           for (const Eigen::VectorXd& tmp: multiturn)
           {
