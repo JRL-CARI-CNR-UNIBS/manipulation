@@ -1,2 +1,2 @@
 
-Basic manipulation utils.
+Base manipulation utils.

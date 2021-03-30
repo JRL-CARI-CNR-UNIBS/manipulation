@@ -54,7 +54,7 @@ namespace manipulation
     m_add_slots_srv = m_pnh.advertiseService("add_slots",&PlaceObjects::addSlotsCb,this);
     m_remove_slots_srv = m_pnh.advertiseService("remove_slots",&PlaceObjects::removeSlotsCb,this);
     m_remove_obj_from_slot_srv = m_pnh.advertiseService("remove_obj_from_slot",&PlaceObjects::removeObjectFromSlotCb,this);
-    m_reset_slots_srv = m_pnh.advertiseService("outbound/reset",&PlaceObjects::resetSlotsCb,this);
+    m_reset_slots_srv = m_pnh.advertiseService("outbound/reset_slot",&PlaceObjects::resetSlotsCb,this);
 
     m_detach_object_srv = m_nh.serviceClient<object_loader_msgs::DetachObject>("detach_object_to_link");
     m_detach_object_srv.waitForExistence();

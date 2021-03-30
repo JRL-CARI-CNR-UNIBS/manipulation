@@ -124,7 +124,11 @@ bool LocationManager::init()
     m_ik_sol_number = 200;
   }
 
-  m_max_stall_iter=m_nh.param("max_stall_iter",100);
+  if (!m_nh.getParam("max_stall_iter", m_max_stall_iter))
+  {
+    ROS_WARN("parameter %s/max_stall_iter is not defined, used default value = 100", m_nh.getNamespace().c_str());
+    m_max_stall_iter = 100;
+  }
 
   if (!m_nh.getParam("groups",m_tool_names))
   {
