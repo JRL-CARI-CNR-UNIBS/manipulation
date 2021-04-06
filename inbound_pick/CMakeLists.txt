@@ -20,32 +20,32 @@ find_package(catkin REQUIRED COMPONENTS
   object_loader_msgs
   tf_conversions
 )
+
 catkin_package(
-  INCLUDE_DIRS
+  INCLUDE_DIRS 
   LIBRARIES inbound_pick
-  CATKIN_DEPENDS moveit_planning_helper manipulation_msgs manipulation_utils roscpp rosdyn_core std_srvs rosparam_utilities object_loader_msgs tf_conversions
+  CATKIN_DEPENDS  moveit_planning_helper 
+                  manipulation_msgs 
+                  manipulation_utils 
+                  roscpp 
+                  rosdyn_core 
+                  std_srvs 
+                  rosparam_utilities 
+                  object_loader_msgs 
+                  tf_conversions
   DEPENDS
 )
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories( ${catkin_INCLUDE_DIRS} )
 
 add_executable(       ${PROJECT_NAME}_server src/inbound_pick_server_node.cpp)
 add_dependencies(     ${PROJECT_NAME}_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_server
-  ${catkin_LIBRARIES}
-)
+target_link_libraries(${PROJECT_NAME}_server ${catkin_LIBRARIES} )
 
 add_executable(       ${PROJECT_NAME}_client src/inbound_pick_client_node.cpp)
 add_dependencies(     ${PROJECT_NAME}_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_client
-  ${catkin_LIBRARIES}
-)
+target_link_libraries(${PROJECT_NAME}_client ${catkin_LIBRARIES} )
 
 add_executable(       ${PROJECT_NAME}_loader src/inbound_pick_loader_node.cpp)
 add_dependencies(     ${PROJECT_NAME}_loader ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_loader
-  ${catkin_LIBRARIES}
-)
+target_link_libraries(${PROJECT_NAME}_loader ${catkin_LIBRARIES} )
 

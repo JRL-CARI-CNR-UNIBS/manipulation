@@ -23,8 +23,14 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES manipulation_utils
-  CATKIN_DEPENDS manipulation_msgs moveit_planning_helper object_loader_msgs roscpp roscpp rosdyn_core rosparam_utilities std_srvs
+  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS  manipulation_msgs 
+                  moveit_planning_helper 
+                  object_loader_msgs 
+                  roscpp 
+                  rosdyn_core 
+                  rosparam_utilities 
+                  std_srvs
   DEPENDS 
 )
 
@@ -34,10 +40,9 @@ if(CATKIN_ENABLE_TESTING AND ENABLE_COVERAGE_TESTING)
   APPEND_COVERAGE_COMPILER_FLAGS()
 endif()
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIRS}
+include_directories(include
+                    ${catkin_INCLUDE_DIRS}
+                    ${EIGEN3_INCLUDE_DIRS}
 )
 
 add_library(${PROJECT_NAME}
@@ -50,6 +55,19 @@ add_library(${PROJECT_NAME}
             src/skill_base.cpp 
 )
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+
+install(TARGETS ${PROJECT_NAME}
+        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY include/${PROJECT_NAME}/
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+        FILES_MATCHING PATTERN "*.h"
+        PATTERN ".svn" EXCLUDE
+)
 
 
 ## Add gtest based cpp test target and link libraries

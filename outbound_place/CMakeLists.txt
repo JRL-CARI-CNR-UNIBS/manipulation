@@ -34,29 +34,19 @@ catkin_package(
                   std_srvs 
                   object_loader_msgs 
                   tf_conversions 
-                  #eigen_conversions
   DEPENDS
 )
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories( ${catkin_INCLUDE_DIRS} )
 
 add_executable(       ${PROJECT_NAME}_server src/outbound_place_server_node.cpp)
 add_dependencies(     ${PROJECT_NAME}_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_server
-  ${catkin_LIBRARIES}
-)
+target_link_libraries(${PROJECT_NAME}_server ${catkin_LIBRARIES})
 
 add_executable(       ${PROJECT_NAME}_loader src/outbound_place_loader_node.cpp)
 add_dependencies(     ${PROJECT_NAME}_loader ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_loader
-  ${catkin_LIBRARIES}
-)
+target_link_libraries(${PROJECT_NAME}_loader ${catkin_LIBRARIES} )
 
 add_executable(       ${PROJECT_NAME}_client src/outbound_place_client_node.cpp)
 add_dependencies(     ${PROJECT_NAME}_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_client
-  ${catkin_LIBRARIES}
-)
+target_link_libraries(${PROJECT_NAME}_client ${catkin_LIBRARIES})

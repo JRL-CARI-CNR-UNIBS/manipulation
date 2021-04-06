@@ -27,10 +27,7 @@ catkin_package(
   DEPENDS 
 )
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories( ${catkin_INCLUDE_DIRS} )
 
 add_executable(${PROJECT_NAME}_server src/go_to_location_server_node.cpp)
 add_dependencies(${PROJECT_NAME}_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

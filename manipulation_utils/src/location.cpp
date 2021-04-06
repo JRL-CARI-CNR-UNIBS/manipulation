@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <manipulation_utils/location.h>
-
+//#include <moveit/collision_detection_bullet/collision_detector_allocator_bullet.h>
 namespace manipulation 
 {
 
@@ -182,7 +182,7 @@ bool LocationManager::init()
     moveit::core::JointModelGroup* jmg = m_kinematic_model->getJointModelGroup(group_name);
     m_joint_models.insert(std::pair<std::string,moveit::core::JointModelGroup*>(group_name,jmg));
 
-
+    
     ROS_INFO("Setting PlanningScene.");
     m_planning_scene.insert(std::pair<std::string,std::shared_ptr<planning_scene::PlanningScene>>(group_name,std::make_shared<planning_scene::PlanningScene>(m_kinematic_model)));
     collision_detection::AllowedCollisionMatrix acm = m_planning_scene.at(group_name)->getAllowedCollisionMatrixNonConst();
@@ -203,7 +203,11 @@ bool LocationManager::init()
           acm.setEntry(link,true);
         }
       }
-    }
+      
+      // To be evolved with Plugin, currently not available for the PlanningScene
+      //m_planning_scene.at(group_name)->setActiveCollisionDetector(collision_detection::CollisionDetectorAllocatorBullet::create());  
+
+     }
     else
     {
       if (m_nh.getParam(group_name+"/disable_collisions",allowed_collisions))
