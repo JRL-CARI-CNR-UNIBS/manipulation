@@ -17,6 +17,9 @@
     local-name: common/name_sorting
     uri: https://github.com/CNR-STIIMA-IRAS/name_sorting
 - git:
+    local-name: common/subscription_notifier
+    uri: https://github.com/CNR-STIIMA-IRAS/subscription_notifier
+- git:
     local-name: common/rosparam_utilities
     uri: https://github.com/CNR-STIIMA-IRAS/rosparam_utilities
 - git:
