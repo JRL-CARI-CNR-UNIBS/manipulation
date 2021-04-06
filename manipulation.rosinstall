@@ -10,3 +10,6 @@
 - git:
     local-name: common/rosparam_utilities
     uri: https://github.com/CNR-STIIMA-IRAS/rosparam_utilities
+- git:
+    local-name: cari_jrl/manipulation
+    uri: https://github.com/JRL-CARI-CNR-UNIBS/manipulation
