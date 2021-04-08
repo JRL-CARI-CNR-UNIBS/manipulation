@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Eigen/Geometry>
 #include <eigen_conversions/eigen_msg.h>
 
+#include <moveit/collision_plugin_loader/collision_plugin_loader.h>
 #include <moveit/kinematic_constraints/kinematic_constraint.h>
 #include <moveit/kinematic_constraints/utils.h>
 #include <moveit/move_group_interface/move_group_interface.h>
@@ -169,6 +170,8 @@ protected:
   std::map<std::string,Eigen::VectorXd> m_preferred_configuration;
   std::map<std::string,Eigen::VectorXd> m_preferred_configuration_weight;
 
+  collision_detection::CollisionPluginLoader m_collision_loader;
+  
   ros::Publisher m_display_publisher;
   ros::ServiceServer m_add_locations_srv;
   ros::ServiceServer m_remove_locations_srv;

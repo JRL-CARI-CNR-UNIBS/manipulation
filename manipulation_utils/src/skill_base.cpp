@@ -51,7 +51,7 @@ namespace manipulation
       return false;
     }
       
-    m_target_pub = m_pnh.advertise<geometry_msgs::PoseStamped>("target",1);
+    m_target_pub = m_nh.advertise<geometry_msgs::PoseStamped>("target_visualization",1);
 
     return true;
   }

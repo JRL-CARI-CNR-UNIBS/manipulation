@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <manipulation_utils/location.h>
-//#include <moveit/collision_detection_bullet/collision_detector_allocator_bullet.h>
 namespace manipulation 
 {
 
@@ -202,12 +201,8 @@ bool LocationManager::init()
           ROS_INFO("Disable collision detection for group %s and link %s",group_name.c_str(),link.c_str());
           acm.setEntry(link,true);
         }
-      }
-      
-      // To be evolved with Plugin, currently not available for the PlanningScene
-      //m_planning_scene.at(group_name)->setActiveCollisionDetector(collision_detection::CollisionDetectorAllocatorBullet::create());  
-
-     }
+      } 
+    }
     else
     {
       if (m_nh.getParam(group_name+"/disable_collisions",allowed_collisions))
@@ -215,6 +210,12 @@ bool LocationManager::init()
         ROS_WARN("in group %s/%s you set disable_collisions but not use_disable_collisions, it is ignored",m_nh.getNamespace().c_str(),group_name.c_str());
       }
     }
+
+    ///////// TESTING
+    // Set the collision detector
+    m_collision_loader.setupScene(m_nh,m_planning_scene.at(group_name));
+    //m_planning_scene.at(group_name)->setActiveCollisionDetector(collision_detection::CollisionDetectorAllocatorBullet::create());  
+    ///////// TESTING
 
     Eigen::Vector3d gravity;
     gravity << 0,0,-9.806; // Muovere in file di configurazione
