@@ -3,7 +3,7 @@ string skill_name
 #Name of the tool be used to execute the skill
 string tool_id
 #Property of the tool to be applied to the tool in use 
-int8 property_id
+string property_id
 ---
 int8 results
 int8 Success=0

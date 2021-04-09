@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   manipulation_msgs
   moveit_planning_helper
   object_loader_msgs
+  #collision_detection_gpuvoxel
   roscpp
   rosdyn_core
   rosparam_utilities
@@ -27,6 +28,7 @@ catkin_package(
   CATKIN_DEPENDS  manipulation_msgs 
                   moveit_planning_helper 
                   object_loader_msgs 
+                  #collision_detection_gpuvoxel
                   roscpp 
                   rosdyn_core 
                   rosparam_utilities 

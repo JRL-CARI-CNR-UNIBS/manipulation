@@ -5,8 +5,12 @@ string object_name
 string[] slot_names
 #Tool referance ti be used to execute the skill
 string tool_id
+#Property associated to the use of the tool before placing execution
+string property_pre_execution_id
 #Property associated to the use of the tool
-int8 property_id
+string property_execution_id
+#Property associated to the use of the tool after placing execution
+string property_post_execution_id
 ---
 int8 result
 string slot_name

@@ -319,6 +319,31 @@ namespace manipulation
         return;
       }
 
+      // Set the desired tool behaviour 
+      manipulation_msgs::JobExecution job_req;
+      if(!goal->property_pre_execution_id.empty())
+      {
+        job_req.request.skill_name = "place";
+        job_req.request.tool_id = goal->tool_id;
+        job_req.request.property_id = goal->property_pre_execution_id;
+
+        if (!m_job_srv.call(job_req))
+        {
+          action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
+          ROS_ERROR("Unable to call %s service for object %s during job pre execution",m_job_srv.getService().c_str(),goal->object_name.c_str());
+          as->setAborted(action_res,"unable to call JobExecution service");
+          return;
+        }
+        if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
+        {
+          action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
+          ROS_ERROR("Error on service %s result for object name %s, job pre execution error: %d", m_job_srv.getService().c_str(),
+                                                                                                  goal->object_name.c_str(),
+                                                                                                  job_req.response.results);
+          as->setAborted(action_res,"error on service JobExecution result");
+          return;
+        }
+      }
       /* Planning to slot */
 
       Eigen::VectorXd object_release_jconf;
@@ -419,26 +444,29 @@ namespace manipulation
       }
       ROS_INFO("Group %s: detached object %s ", group_name.c_str(), detach_srv.request.obj_id.c_str());
 
-      manipulation_msgs::JobExecution job_req;
-      job_req.request.skill_name = "place";
-      job_req.request.tool_id = goal->tool_id;
-      job_req.request.property_id = goal->property_id;
+      // Set the desired tool behaviour 
+      if(!goal->property_execution_id.empty())
+      {
+        job_req.request.skill_name = "place";
+        job_req.request.tool_id = goal->tool_id;
+        job_req.request.property_id = goal->property_execution_id;
 
-      if (!m_job_srv.call(job_req))
-      {
-        action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
-        ROS_ERROR("Unable to call %s service for object %s",m_job_srv.getService().c_str(),goal->object_name.c_str());
-        as->setAborted(action_res,"unable to call JobExecution service");
-        return;
-      }
-      if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
-      {
-        action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
-        ROS_ERROR("Error on service %s result for object name %s, error: %d", m_job_srv.getService().c_str(),
-                                                                              goal->object_name.c_str(),
-                                                                              job_req.response.results);
-        as->setAborted(action_res,"error on service JobExecution result");
-        return;
+        if (!m_job_srv.call(job_req))
+        {
+          action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
+          ROS_ERROR("Unable to call %s service for object %s during job execution",m_job_srv.getService().c_str(),goal->object_name.c_str());
+          as->setAborted(action_res,"unable to call JobExecution service");
+          return;
+        }
+        if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
+        {
+          action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
+          ROS_ERROR("Error on service %s result for object name %s, job execution error: %d", m_job_srv.getService().c_str(),
+                                                                                              goal->object_name.c_str(),
+                                                                                              job_req.response.results);
+          as->setAborted(action_res,"error on service JobExecution result");
+          return;
+        }
       }
 
       action_res.release_object_duration = ros::Time::now() - t_release_init;
@@ -508,9 +536,35 @@ namespace manipulation
         return;
       }
 
+      // Set the desired tool behaviour 
+      if(!goal->property_post_execution_id.empty())
+      {
+        job_req.request.skill_name = "place";
+        job_req.request.tool_id = goal->tool_id;
+        job_req.request.property_id = goal->property_post_execution_id;
+
+        if (!m_job_srv.call(job_req))
+        {
+          action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
+          ROS_ERROR("Unable to call %s service for object %s during job post execution",m_job_srv.getService().c_str(),goal->object_name.c_str());
+          as->setAborted(action_res,"unable to call JobExecution service");
+          return;
+        }
+        if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
+        {
+          action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
+          ROS_ERROR("Error on service %s result for object name %s, job post execution error: %d", m_job_srv.getService().c_str(),
+                                                                                                    goal->object_name.c_str(),
+                                                                                                    job_req.response.results);
+          as->setAborted(action_res,"error on service JobExecution result");
+          return;
+        }
+      }
+
       action_res.result = manipulation_msgs::PlaceObjectsResult::Success;
       action_res.slot_name = best_slot_name;
       action_res.actual_duration = ros::Time::now() - t_start;
+      action_res.cost = action_res.path_length;
       as->setSucceeded(action_res,"ok");
 
       return;

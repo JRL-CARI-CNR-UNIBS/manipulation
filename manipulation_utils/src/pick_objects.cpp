@@ -356,6 +356,30 @@ namespace manipulation
         return;
       }
 
+      // Set the desired tool behaviour 
+      manipulation_msgs::JobExecution job_req;
+      if(!goal->property_pre_execution_id.empty())
+      {
+        job_req.request.skill_name = "pick";
+        job_req.request.tool_id = goal->tool_id;
+        job_req.request.property_id = goal->property_pre_execution_id;
+
+        if (!m_job_srv.call(job_req))
+        {
+          action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
+          ROS_ERROR("Unable to call %s service during job pre execution.",m_job_srv.getService().c_str());
+          as->setAborted(action_res,"unable to call JobExecution service");
+          return;
+        }
+        if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
+        {
+          action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
+          ROS_ERROR("Error on service %s, job pre execution error: %d", m_job_srv.getService().c_str(), job_req.response.results);
+          as->setAborted(action_res,"error on service JobExecution result");
+          return;
+        }
+      }
+
       /* Planning to picking object position */
   
       if (possible_object_location_names.size() != 0)
@@ -517,26 +541,30 @@ namespace manipulation
 
       ROS_INFO("Group %s: attached collision object %s to tool %s",group_name.c_str(),attach_srv.request.obj_id.c_str(),attach_srv.request.link_name.c_str());
 
-      manipulation_msgs::JobExecution job_req;
-      job_req.request.skill_name = "pick";
-      job_req.request.tool_id = goal->tool_id;
-      job_req.request.property_id = goal->property_id;
 
-      if (!m_job_srv.call(job_req))
+      // Set the desired tool behaviour 
+      if(!goal->property_execution_id.empty())
       {
-        action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
-        ROS_ERROR("Unable to call %s service for object %s",m_job_srv.getService().c_str(), best_object_name.c_str());
-        as->setAborted(action_res,"unable to call JobExecution service");
-        return;
-      }
-      if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
-      {
-        action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
-        ROS_ERROR("Error on service %s result for object name %s, error: %d", m_job_srv.getService().c_str(),
-                                                                              best_object_name.c_str(),
-                                                                              job_req.response.results);
-        as->setAborted(action_res,"error on service JobExecution result");
-        return;
+        job_req.request.skill_name = "pick";
+        job_req.request.tool_id = goal->tool_id;
+        job_req.request.property_id = goal->property_execution_id;
+
+        if (!m_job_srv.call(job_req))
+        {
+          action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
+          ROS_ERROR("Unable to call %s service for object %s during job execution",m_job_srv.getService().c_str(), best_object_name.c_str());
+          as->setAborted(action_res,"unable to call JobExecution service");
+          return;
+        }
+        if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
+        {
+          action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
+          ROS_ERROR("Error on service %s result for object name %s, job execution error: %d", m_job_srv.getService().c_str(),
+                                                                                best_object_name.c_str(),
+                                                                                job_req.response.results);
+          as->setAborted(action_res,"error on service JobExecution result");
+          return;
+        }
       }
 
       action_res.grasping_object_duration = (ros::Time::now()-t_grasp_init);
@@ -548,6 +576,9 @@ namespace manipulation
       std::string best_leave_location_name;
       std::vector<std::string> best_object_location_names(1, best_object_location_name);
       
+
+      ros::Duration(0.5).sleep(); // wait a certain amount of time before getting the robot CurrentState and planning to leave
+
       state = *m_groups.at(group_name)->getCurrentState();
       if (jmg)
         state.copyJointGroupPositions(jmg, actual_jconf);
@@ -604,10 +635,36 @@ namespace manipulation
         as->setAborted(action_res,"Error in trajectory execution");
         return;
       }
+
+      // Set the desired tool behaviour 
+      if(!goal->property_post_execution_id.empty())
+      {
+        job_req.request.skill_name = "pick";
+        job_req.request.tool_id = goal->tool_id;
+        job_req.request.property_id = goal->property_post_execution_id;
+
+        if (!m_job_srv.call(job_req))
+        {
+          action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
+          ROS_ERROR("Unable to call %s service for object %s during job post execution",m_job_srv.getService().c_str(), best_object_name.c_str());
+          as->setAborted(action_res,"unable to call JobExecution service");
+          return;
+        }
+        if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
+        {
+          action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
+          ROS_ERROR("Error on service %s result for object name %s, job post execution error: %d", m_job_srv.getService().c_str(),
+                                                                                                    best_object_name.c_str(),
+                                                                                                    job_req.response.results);
+          as->setAborted(action_res,"error on service JobExecution result");
+          return;
+        }
+      }
             
       action_res.object_type = selected_object->getType();
       action_res.object_name = selected_object->getName();
       action_res.inbound_box = best_box_name;
+      action_res.cost = action_res.path_length;
       action_res.result = manipulation_msgs::PickObjectsResult::Success;
 
       action_res.actual_duration += (ros::Time::now()-t_start);
