@@ -13,6 +13,7 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 find_package(catkin REQUIRED COMPONENTS
   manipulation_msgs
+  configuration_msgs
   moveit_planning_helper
   object_loader_msgs
   #collision_detection_gpuvoxel
@@ -25,7 +26,8 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS  manipulation_msgs 
+  CATKIN_DEPENDS  manipulation_msgs
+                  configuration_msgs 
                   moveit_planning_helper 
                   object_loader_msgs 
                   #collision_detection_gpuvoxel

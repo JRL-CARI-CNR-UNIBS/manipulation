@@ -40,7 +40,7 @@ namespace manipulation
                             const ros::NodeHandle& pnh):
                             m_nh(nh),
                             m_pnh(pnh),
-                            SkillBase(nh,pnh)
+                            SkillBase(nh,pnh,"pick")
   {
     // nothing to do here     
   }
@@ -58,9 +58,6 @@ namespace manipulation
 
     m_attach_object_srv = m_nh.serviceClient<object_loader_msgs::AttachObject>("attach_object_to_link");
     m_attach_object_srv.waitForExistence();
-
-    m_job_srv = m_pnh.serviceClient<manipulation_msgs::JobExecution>("job/pick"); 
-    m_job_srv.waitForExistence();
 
     if (m_group_names.size() > 0)
     {
@@ -293,6 +290,18 @@ namespace manipulation
 
       std::string tool_name = m_tool_names.at(group_name);
 
+      // Set the controller for the movement 
+      if(!goal->approach_loc_ctrl_id.empty())
+      {
+        if (!setController( goal->approach_loc_ctrl_id ))
+        {
+          action_res.result = manipulation_msgs::PickObjectsResult::ControllerError;
+          ROS_ERROR("Error on service %s result on starting controller %s", m_set_ctrl_srv.getService().c_str(), goal->approach_loc_ctrl_id.c_str() );
+          as->setAborted(action_res,"error on setController result");
+          return;
+        }
+      }
+
       moveit::core::JointModelGroup* jmg = m_joint_models.at(group_name);
       robot_state::RobotState state = *m_groups.at(group_name)->getCurrentState();
       
@@ -357,24 +366,12 @@ namespace manipulation
       }
 
       // Set the desired tool behaviour 
-      manipulation_msgs::JobExecution job_req;
-      if(!goal->property_pre_execution_id.empty())
+      if(!goal->property_pre_exec_id.empty())
       {
-        job_req.request.skill_name = "pick";
-        job_req.request.tool_id = goal->tool_id;
-        job_req.request.property_id = goal->property_pre_execution_id;
-
-        if (!m_job_srv.call(job_req))
+        if (!jobExecute(goal->tool_id,goal->property_pre_exec_id) )
         {
           action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
-          ROS_ERROR("Unable to call %s service during job pre execution.",m_job_srv.getService().c_str());
-          as->setAborted(action_res,"unable to call JobExecution service");
-          return;
-        }
-        if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
-        {
-          action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
-          ROS_ERROR("Error on service %s, job pre execution error: %d", m_job_srv.getService().c_str(), job_req.response.results);
+          ROS_ERROR("Error on service %s during job pre execution", m_job_srv.getService().c_str());
           as->setAborted(action_res,"error on service JobExecution result");
           return;
         }
@@ -422,13 +419,24 @@ namespace manipulation
         }
       }
       
-
       if(possible_object_location_names.size() == 0)
       {
         action_res.result = manipulation_msgs::PickObjectsResult::NoObjectsFound;
         ROS_ERROR("Can't find any object location names in the location manager.");
         as->setAborted(action_res,"error in planning to the object");
         return;
+      }
+
+      // Set the controller for the movement 
+      if(!goal->to_loc_ctrl_id.empty())
+      {
+        if (!setController( goal->to_loc_ctrl_id ))
+        {
+          action_res.result = manipulation_msgs::PickObjectsResult::ControllerError;
+          ROS_ERROR("Error on service %s result on starting controller %s", m_set_ctrl_srv.getService().c_str(), goal->to_loc_ctrl_id.c_str() );
+          as->setAborted(action_res,"error on setController result");
+          return;
+        }
       }
 
       std::string best_object_location_name;
@@ -543,25 +551,13 @@ namespace manipulation
 
 
       // Set the desired tool behaviour 
-      if(!goal->property_execution_id.empty())
+      if(!goal->property_exec_id.empty())
       {
-        job_req.request.skill_name = "pick";
-        job_req.request.tool_id = goal->tool_id;
-        job_req.request.property_id = goal->property_execution_id;
-
-        if (!m_job_srv.call(job_req))
+        if (!jobExecute(goal->tool_id,goal->property_exec_id) )
         {
           action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
-          ROS_ERROR("Unable to call %s service for object %s during job execution",m_job_srv.getService().c_str(), best_object_name.c_str());
-          as->setAborted(action_res,"unable to call JobExecution service");
-          return;
-        }
-        if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
-        {
-          action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
-          ROS_ERROR("Error on service %s result for object name %s, job execution error: %d", m_job_srv.getService().c_str(),
-                                                                                best_object_name.c_str(),
-                                                                                job_req.response.results);
+          ROS_ERROR("Error on service %s result for object name %s during job execution", m_job_srv.getService().c_str(),
+                                                                                          best_object_name.c_str() );
           as->setAborted(action_res,"error on service JobExecution result");
           return;
         }
@@ -576,6 +572,17 @@ namespace manipulation
       std::string best_leave_location_name;
       std::vector<std::string> best_object_location_names(1, best_object_location_name);
       
+      // Set the controller for the movement 
+      if(!goal->leave_loc_ctrl_id.empty())
+      {
+        if (!setController( goal->leave_loc_ctrl_id ))
+        {
+          action_res.result = manipulation_msgs::PickObjectsResult::ControllerError;
+          ROS_ERROR("Error on service %s result on starting controller %s", m_set_ctrl_srv.getService().c_str(), goal->leave_loc_ctrl_id.c_str() );
+          as->setAborted(action_res,"error on setController result");
+          return;
+        }
+      }
 
       ros::Duration(0.5).sleep(); // wait a certain amount of time before getting the robot CurrentState and planning to leave
 
@@ -637,25 +644,13 @@ namespace manipulation
       }
 
       // Set the desired tool behaviour 
-      if(!goal->property_post_execution_id.empty())
+      if(!goal->property_post_exec_id.empty())
       {
-        job_req.request.skill_name = "pick";
-        job_req.request.tool_id = goal->tool_id;
-        job_req.request.property_id = goal->property_post_execution_id;
-
-        if (!m_job_srv.call(job_req))
+        if (!jobExecute(goal->tool_id,goal->property_post_exec_id) )
         {
           action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
-          ROS_ERROR("Unable to call %s service for object %s during job post execution",m_job_srv.getService().c_str(), best_object_name.c_str());
-          as->setAborted(action_res,"unable to call JobExecution service");
-          return;
-        }
-        if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
-        {
-          action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
-          ROS_ERROR("Error on service %s result for object name %s, job post execution error: %d", m_job_srv.getService().c_str(),
-                                                                                                    best_object_name.c_str(),
-                                                                                                    job_req.response.results);
+          ROS_ERROR("Error on service %s result for object name %s during job post execution",  m_job_srv.getService().c_str(),
+                                                                                                best_object_name.c_str() );
           as->setAborted(action_res,"error on service JobExecution result");
           return;
         }

@@ -41,7 +41,7 @@ namespace manipulation
                               const ros::NodeHandle& pnh):
                               m_nh(nh),
                               m_pnh(pnh),
-                              SkillBase(nh,pnh)
+                              SkillBase(nh,pnh,"place")
   {
 
   }
@@ -61,9 +61,6 @@ namespace manipulation
 
     m_remove_object_from_scene_srv = m_nh.serviceClient<object_loader_msgs::RemoveObjects>("remove_object_from_scene");
     m_remove_object_from_scene_srv.waitForExistence();
-
-    m_job_srv = m_pnh.serviceClient<manipulation_msgs::JobExecution>("job/place"); 
-    m_job_srv.waitForExistence();
 
     if (m_group_names.size() > 0)
     {
@@ -256,6 +253,18 @@ namespace manipulation
 
       std::string object_name = goal->object_name;
 
+      // Set the controller for the movement 
+      if(!goal->approach_loc_ctrl_id.empty())
+      {
+        if (!setController( goal->approach_loc_ctrl_id ))
+        {
+          action_res.result = manipulation_msgs::PlaceObjectsResult::ControllerError;
+          ROS_ERROR("Error on service %s result on starting controller %s", m_set_ctrl_srv.getService().c_str(), goal->approach_loc_ctrl_id.c_str() );
+          as->setAborted(action_res,"error on setController result");
+          return;
+        }
+      }
+
       moveit::core::JointModelGroup* jmg = m_joint_models.at(group_name);
       robot_state::RobotState state = *m_groups.at(group_name)->getCurrentState();
       
@@ -320,31 +329,32 @@ namespace manipulation
       }
 
       // Set the desired tool behaviour 
-      manipulation_msgs::JobExecution job_req;
-      if(!goal->property_pre_execution_id.empty())
+      if(!goal->property_pre_exec_id.empty())
       {
-        job_req.request.skill_name = "place";
-        job_req.request.tool_id = goal->tool_id;
-        job_req.request.property_id = goal->property_pre_execution_id;
-
-        if (!m_job_srv.call(job_req))
+        if (!jobExecute(goal->tool_id,goal->property_pre_exec_id) )
         {
           action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
-          ROS_ERROR("Unable to call %s service for object %s during job pre execution",m_job_srv.getService().c_str(),goal->object_name.c_str());
-          as->setAborted(action_res,"unable to call JobExecution service");
-          return;
-        }
-        if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
-        {
-          action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
-          ROS_ERROR("Error on service %s result for object name %s, job pre execution error: %d", m_job_srv.getService().c_str(),
-                                                                                                  goal->object_name.c_str(),
-                                                                                                  job_req.response.results);
+          ROS_ERROR("Error on service %s result for object name %s during job pre execution", m_job_srv.getService().c_str(),
+                                                                                              goal->object_name.c_str());
           as->setAborted(action_res,"error on service JobExecution result");
           return;
         }
       }
+
+
       /* Planning to slot */
+
+      // Set the controller for the movement 
+      if(!goal->to_loc_ctrl_id.empty())
+      {
+        if (!setController( goal->to_loc_ctrl_id ))
+        {
+          action_res.result = manipulation_msgs::PlaceObjectsResult::ControllerError;
+          ROS_ERROR("Error on service %s result on starting controller %s", m_set_ctrl_srv.getService().c_str(), goal->to_loc_ctrl_id.c_str() );
+          as->setAborted(action_res,"error on setController result");
+          return;
+        }
+      }
 
       Eigen::VectorXd object_release_jconf;
       std::vector<std::string> slot_names(1, selected_slot->getLocationName());
@@ -445,25 +455,13 @@ namespace manipulation
       ROS_INFO("Group %s: detached object %s ", group_name.c_str(), detach_srv.request.obj_id.c_str());
 
       // Set the desired tool behaviour 
-      if(!goal->property_execution_id.empty())
+      if(!goal->property_exec_id.empty())
       {
-        job_req.request.skill_name = "place";
-        job_req.request.tool_id = goal->tool_id;
-        job_req.request.property_id = goal->property_execution_id;
-
-        if (!m_job_srv.call(job_req))
+        if (!jobExecute(goal->tool_id,goal->property_exec_id) )
         {
           action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
-          ROS_ERROR("Unable to call %s service for object %s during job execution",m_job_srv.getService().c_str(),goal->object_name.c_str());
-          as->setAborted(action_res,"unable to call JobExecution service");
-          return;
-        }
-        if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
-        {
-          action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
-          ROS_ERROR("Error on service %s result for object name %s, job execution error: %d", m_job_srv.getService().c_str(),
-                                                                                              goal->object_name.c_str(),
-                                                                                              job_req.response.results);
+          ROS_ERROR("Error on service %s result for object name %s during job execution", m_job_srv.getService().c_str(),
+                                                                                          goal->object_name.c_str());
           as->setAborted(action_res,"error on service JobExecution result");
           return;
         }
@@ -483,6 +481,18 @@ namespace manipulation
 
 
       /* Planning to leave position after object placing */
+
+      // Set the controller for the movement 
+      if(!goal->leave_loc_ctrl_id.empty())
+      {
+        if (!setController( goal->leave_loc_ctrl_id ))
+        {
+          action_res.result = manipulation_msgs::PlaceObjectsResult::ControllerError;
+          ROS_ERROR("Error on service %s result on starting controller %s", m_set_ctrl_srv.getService().c_str(), goal->leave_loc_ctrl_id.c_str() );
+          as->setAborted(action_res,"error on setController result");
+          return;
+        }
+      }
 
       Eigen::VectorXd slot_leave_jconf;
       t_planning_init = ros::Time::now();
@@ -537,25 +547,13 @@ namespace manipulation
       }
 
       // Set the desired tool behaviour 
-      if(!goal->property_post_execution_id.empty())
+      if(!goal->property_post_exec_id.empty())
       {
-        job_req.request.skill_name = "place";
-        job_req.request.tool_id = goal->tool_id;
-        job_req.request.property_id = goal->property_post_execution_id;
-
-        if (!m_job_srv.call(job_req))
+        if (!jobExecute(goal->tool_id,goal->property_post_exec_id) )
         {
           action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
-          ROS_ERROR("Unable to call %s service for object %s during job post execution",m_job_srv.getService().c_str(),goal->object_name.c_str());
-          as->setAborted(action_res,"unable to call JobExecution service");
-          return;
-        }
-        if (job_req.response.results != manipulation_msgs::JobExecution::Response::Success) 
-        {
-          action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
-          ROS_ERROR("Error on service %s result for object name %s, job post execution error: %d", m_job_srv.getService().c_str(),
-                                                                                                    goal->object_name.c_str(),
-                                                                                                    job_req.response.results);
+          ROS_ERROR("Error on service %s result for object name %s during job post execution",m_job_srv.getService().c_str(),
+                                                                                              goal->object_name.c_str());
           as->setAborted(action_res,"error on service JobExecution result");
           return;
         }

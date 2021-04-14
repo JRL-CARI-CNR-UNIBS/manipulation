@@ -51,8 +51,12 @@ namespace manipulation
       ros::NodeHandle m_nh;
       ros::NodeHandle m_pnh; 
 
-      ros::Publisher m_target_pub;
+      std::string m_skill_name;
 
+      ros::Publisher m_target_pub;
+      ros::ServiceClient m_job_srv;
+      ros::ServiceClient m_set_ctrl_srv;
+      
       tf::TransformBroadcaster m_broadcaster;
 
       bool execute( const std::string& group_name,
@@ -64,9 +68,15 @@ namespace manipulation
                   const control_msgs::FollowJointTrajectoryResultConstPtr& result,
                   const std::string& group_name);
 
+      bool jobExecute(const std::string& tool_id,
+                      const std::string& property_id );
+
+      bool setController( const std::string& controller_name );
+
     public:
       SkillBase(const ros::NodeHandle& nh,
-                const ros::NodeHandle& pnh);
+                const ros::NodeHandle& pnh,
+                const std::string& skill_name);
 
       bool init();
 

@@ -55,8 +55,7 @@ namespace manipulation
       ros::ServiceServer m_reset_slots_srv;
       ros::ServiceClient m_detach_object_srv;
       ros::ServiceClient m_remove_object_from_scene_srv;
-      ros::ServiceClient m_job_srv;
-
+     
       std::map<std::string,SlotPtr> m_slots;
 
       tf::TransformBroadcaster m_broadcaster;

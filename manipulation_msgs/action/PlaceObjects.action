@@ -3,14 +3,20 @@ string object_name
 #Vector of slots names where the object can be placed
 #it is necessary to provide at least one valid slot name
 string[] slot_names
+#Controller type used during the execution of the movement to approach the placing location
+string approach_loc_ctrl_id
+#Controller type used during the execution of the movement to placing location
+string to_loc_ctrl_id
+#Controller type used during the execution of the movement to leave the placing location
+string leave_loc_ctrl_id
 #Tool referance ti be used to execute the skill
 string tool_id
 #Property associated to the use of the tool before placing execution
-string property_pre_execution_id
+string property_pre_exec_id
 #Property associated to the use of the tool
-string property_execution_id
+string property_exec_id
 #Property associated to the use of the tool after placing execution
-string property_post_execution_id
+string property_post_exec_id
 ---
 int8 result
 string slot_name
@@ -22,6 +28,7 @@ int8 SceneError=-4
 int8 NoAvailableTrajectories=-5
 int8 TrajectoryError=-6
 int8 ReturnError=-7
+int8 ControllerError=-8
 int8 UnexpectedError=-99
 
 duration expected_execution_duration

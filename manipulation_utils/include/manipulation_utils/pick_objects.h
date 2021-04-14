@@ -66,8 +66,7 @@ namespace manipulation
       ros::ServiceServer m_list_objects_srv;
       ros::ServiceServer m_reset_srv;
       ros::ServiceClient m_attach_object_srv;
-      ros::ServiceClient m_job_srv;
-
+      
       std::map<std::string,std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PickObjectsAction>>> m_pick_servers;
   
     public:
@@ -92,7 +91,7 @@ namespace manipulation
                           manipulation_msgs::ListOfObjects::Response& res);
 
       bool resetBoxesCb(manipulation_msgs::ResetBoxes::Request& req, 
-                        manipulation_msgs::ResetBoxes::Response& res); // to be evaluated
+                        manipulation_msgs::ResetBoxes::Response& res); 
                         
       void pickObjectGoalCb(const manipulation_msgs::PickObjectsGoalConstPtr& goal,
                             const std::string& group_name);
