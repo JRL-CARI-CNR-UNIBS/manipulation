@@ -8,14 +8,20 @@ string[] object_names
 #in case of multiple object types the best location will be selected by the motion planner 
 #the pick object by types the vector object_names need to be empty
 string[] object_types
-#Tool referance ti be used to execute the skill
+#Controller type used during the execution of the movement to approach the picking location
+string approach_loc_ctrl_id
+#Controller type used during the execution of the movement to picking location
+string to_loc_ctrl_id
+#Controller type used during the execution of the movement to leave the picking location
+string leave_loc_ctrl_id
+#Tool referance to execute the skill
 string tool_id
 #Property associated to the use of the tool before picking execution
-string property_pre_execution_id
+string property_pre_exec_id
 #Property associated to the use of the tool
-string property_execution_id
+string property_exec_id
 #Property associated to the use of the tool after picking execution
-string property_post_execution_id
+string property_post_exec_id
 ---
 string object_name
 string object_type
@@ -27,6 +33,7 @@ int8 NoAvailableTrajectories=-3
 int8 GraspFailure=-4
 int8 TrajectoryError=-5
 int8 SceneError=-6
+int8 ControllerError=-7
 int8 Success=0
 int8 UnexpectedError=-99
 

@@ -30,14 +30,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <std_srvs/SetBool.h>
 
+#include <configuration_msgs/StartConfiguration.h>
+
 #include <manipulation_utils/skill_base.h>
+#include <manipulation_msgs/JobExecution.h>
 
 namespace manipulation
 {
   SkillBase::SkillBase( const ros::NodeHandle& nh,
-                        const ros::NodeHandle& pnh):
+                        const ros::NodeHandle& pnh,
+                        const std::string& skill_name):
                         m_nh(nh),
                         m_pnh(pnh),
+                        m_skill_name(skill_name),
                         LocationManager(pnh)
   {
     // nothing to do ...
@@ -52,6 +57,12 @@ namespace manipulation
     }
       
     m_target_pub = m_nh.advertise<geometry_msgs::PoseStamped>("target_visualization",1);
+
+    m_job_srv = m_pnh.serviceClient<manipulation_msgs::JobExecution>("job/"+m_skill_name); 
+    m_job_srv.waitForExistence();
+
+    m_set_ctrl_srv = m_pnh.serviceClient<configuration_msgs::StartConfiguration>("/configuration_manager/start_configuration"); 
+    m_set_ctrl_srv.waitForExistence();
 
     return true;
   }
@@ -121,6 +132,54 @@ namespace manipulation
                 group_name.c_str(),result->error_string.c_str() );
     }
     return;
+  }
+
+  bool SkillBase::jobExecute( const std::string& tool_id,
+                              const std::string& property_id  )
+  {
+    manipulation_msgs::JobExecution job_req;
+    job_req.request.skill_name = m_skill_name;
+    job_req.request.tool_id = tool_id;
+    job_req.request.property_id = property_id;
+
+    if (!m_job_srv.call(job_req))
+    {
+      ROS_ERROR("Unable to call %s service during job execution of skill %s",m_job_srv.getService().c_str(), m_skill_name.c_str());
+      return false;
+    }
+
+    if (job_req.response.results == manipulation_msgs::JobExecution::Response::Success) 
+    {
+      ROS_INFO("Job Execution done!");
+      return true;
+    }
+    else
+    {
+      ROS_ERROR("Job execution error: %d", job_req.response.results);
+      return false;
+    }
+  }
+
+  bool SkillBase::setController( const std::string& controller_name )
+  {
+    configuration_msgs::StartConfiguration start_ctrl_req;
+    start_ctrl_req.request.start_configuration = controller_name;
+    start_ctrl_req.request.strictness = 1;
+
+    if (!m_set_ctrl_srv.call(start_ctrl_req))
+    {
+      ROS_ERROR("Unable to call %s service to set controller: %s",m_set_ctrl_srv.getService().c_str(), controller_name.c_str());
+      return false;
+    }
+
+    if (!start_ctrl_req.response.ok) 
+    {
+      ROS_ERROR("Error on service %s response", m_set_ctrl_srv.getService().c_str());
+      return false;
+    }
+    
+    ROS_INFO("Controller %s started.", controller_name.c_str());
+    return true;
   }
 
 } // end namespace manipulation

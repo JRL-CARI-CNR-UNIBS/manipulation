@@ -62,7 +62,7 @@ int main(int argc, char **argv)
   //place_goal.slot_names.push_back("B1");
 
   place_goal.tool_id = "fake_gripper";
-  place_goal.property_execution_id = "open";
+  place_goal.property_exec_id = "open";
 
   place_ac.sendGoalAndWait(place_goal);
 

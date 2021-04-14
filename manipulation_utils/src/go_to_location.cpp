@@ -35,7 +35,7 @@ GoToLocation::GoToLocation( const ros::NodeHandle& nh,
                             const ros::NodeHandle& pnh):
                             m_nh(nh),
                             m_pnh(pnh),
-                            SkillBase(nh,pnh)
+                            SkillBase(nh,pnh,"go_to")
 {
   // nothing to do here    
 }
@@ -93,6 +93,18 @@ void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,
 
     std::vector<std::string> location_names(1, goal->location_name);
     
+    // Set the controller for the movement 
+    if(!goal->to_loc_ctrl_id.empty())
+    {
+      if (!setController( goal->to_loc_ctrl_id ))
+      {
+        action_res.result = manipulation_msgs::GoToResult::ControllerError;
+        ROS_ERROR("Error on service %s result on starting controller %s", m_set_ctrl_srv.getService().c_str(), goal->to_loc_ctrl_id.c_str() );
+        as->setAborted(action_res,"error on setController result");
+        return;
+      }
+    }
+
     moveit::core::JointModelGroup* jmg = m_joint_models.at(group_name);
     robot_state::RobotState state = *m_groups.at(group_name)->getCurrentState();
     
@@ -143,6 +155,18 @@ void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,
       ROS_ERROR("error executing %s/follow_joint_trajectory",group_name.c_str());
       as->setAborted(action_res,"error in trajectory execution");
       return;
+    }
+
+    // Set the desired tool behaviour 
+    if(!goal->property_exec_id.empty())
+    {
+      if (!jobExecute(goal->tool_id,goal->property_exec_id) )
+      {
+        action_res.result = manipulation_msgs::GoToResult::ToolError;
+        ROS_ERROR("Error on service %s result during job execution", m_job_srv.getService().c_str() );
+        as->setAborted(action_res,"error on service JobExecution result");
+        return;
+      }
     }
 
     action_res.result = manipulation_msgs::GoToResult::Success;
