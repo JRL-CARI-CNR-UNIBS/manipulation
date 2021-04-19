@@ -2,7 +2,7 @@
 string object_name
 #Vector of slots names where the object can be placed
 #it is necessary to provide at least one valid slot name
-string[] slot_names
+string[] slots_group_names
 #Controller type used during the execution of the movement to approach the placing location
 string approach_loc_ctrl_id
 #Controller type used during the execution of the movement to placing location

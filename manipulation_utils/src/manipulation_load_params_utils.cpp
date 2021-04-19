@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <manipulation_msgs/AddBoxes.h>
 #include <manipulation_msgs/AddObjects.h>
 #include <manipulation_msgs/AddSlots.h>
+#include <manipulation_msgs/AddSlotsGroup.h>
 #include <manipulation_msgs/PickObjectsAction.h>
 #include <manipulation_utils/manipulation_utils.h> 
 #include <manipulation_utils/manipulation_load_params_utils.h> 
@@ -49,8 +50,8 @@ namespace manipulation
 InboundPickFromParam::InboundPickFromParam( const ros::NodeHandle &nh):
                                             nh_(nh)
 {
-  add_objs_client_ = nh_.serviceClient<manipulation_msgs::AddObjects>("add_objects");
   add_box_client_ = nh_.serviceClient<manipulation_msgs::AddBoxes>("add_boxes");
+  add_objs_client_ = nh_.serviceClient<manipulation_msgs::AddObjects>("add_objects");
   add_objs_to_scene_client_ = nh_.serviceClient<object_loader_msgs::AddObjects>("/add_object_to_scene");
   
   ROS_INFO("Waiting for: %s server", add_objs_client_.getService().c_str());
@@ -445,19 +446,23 @@ bool InboundPickFromParam::readObjectFromParam()
 OutboundPlaceFromParam::OutboundPlaceFromParam( const ros::NodeHandle &nh):
                                                 nh_(nh)
 {
+  add_slots_group_client_ = nh_.serviceClient<manipulation_msgs::AddSlotsGroup>("add_slots_group");
   add_slots_client_ = nh_.serviceClient<manipulation_msgs::AddSlots>("add_slots");
-  
+
+  ROS_INFO("Waiting for: %s server", add_slots_group_client_.getService().c_str());
+  add_slots_group_client_.waitForExistence();
+
   ROS_INFO("Waiting for: %s server", add_slots_client_.getService().c_str());
   add_slots_client_.waitForExistence();
 
 }
 
-bool OutboundPlaceFromParam::readSlotsFromParam()
+bool OutboundPlaceFromParam::readSlotsGroupFromParam()
 {
   XmlRpc::XmlRpcValue config;
-  if (!nh_.getParam("/outbound/slots",config))
+  if (!nh_.getParam("/outbound/slots_group",config))
   {
-    ROS_ERROR("Unable to find /outbound/slots");
+    ROS_ERROR("Unable to find /outbound/slots_group");
     return false;
   }
 
@@ -466,9 +471,9 @@ bool OutboundPlaceFromParam::readSlotsFromParam()
     ROS_ERROR("The param is not a list of boxed" );
     return false;
   }
-  ROS_INFO("There are %d objects",config.size());
+  ROS_INFO("There are %d slots group",config.size());
 
-  std::vector<manipulation_msgs::Slot> slots;
+  std::vector<manipulation_msgs::SlotsGroup> slots_group;
 
   for (int i=0; i < config.size(); i++)
   {
@@ -485,6 +490,70 @@ bool OutboundPlaceFromParam::readSlotsFromParam()
       return false;
     }
     std::string name = rosparam_utilities::toString(slot["name"]);
+
+    manipulation_msgs::SlotsGroup slots_group_;
+    slots_group_.name = name;
+
+    slots_group.push_back(slots_group_);
+  }
+
+  if (slots_group.size()!=0)
+  {
+    manipulation_msgs::AddSlotsGroup add_slots_group_srv;
+    add_slots_group_srv.request.add_slots_groups = slots_group;
+
+    if (!add_slots_group_client_.call(add_slots_group_srv))
+      return false;
+
+    ROS_INFO("Added %lu slots groups.", slots_group.size());  
+  }
+  else
+  {
+    ROS_WARN("Can't add any slots group.");
+    return false;
+  }
+    
+  return true;
+}
+
+bool OutboundPlaceFromParam::readSlotsFromParam()
+{
+  XmlRpc::XmlRpcValue config;
+  if (!nh_.getParam("/outbound/slots",config))
+  {
+    ROS_ERROR("Unable to find /outbound/slots");
+    return false;
+  }
+
+  if (config.getType() != XmlRpc::XmlRpcValue::TypeArray)
+  {
+    ROS_ERROR("The param is not a list of boxed" );
+    return false;
+  }
+  ROS_INFO("There are %d slots",config.size());
+
+  for (int i=0; i < config.size(); i++)
+  {
+    XmlRpc::XmlRpcValue slot = config[i];
+    if( slot.getType() != XmlRpc::XmlRpcValue::TypeStruct)
+    {
+      ROS_WARN("The element #%d is not a struct", i);
+      continue;
+    }
+
+    if( !slot.hasMember("name") )
+    {
+      ROS_WARN("The element #%d has not the field 'name'", i);
+      return false;
+    }
+    std::string name = rosparam_utilities::toString(slot["name"]);
+
+    if( !slot.hasMember("slots_group") )
+    {
+      ROS_WARN("The element #%d has not the field 'slots_group'", i);
+      return false;
+    }
+    std::string slots_group = rosparam_utilities::toString(slot["slots_group"]);
 
     if( !slot.hasMember("frame") )
     {
@@ -581,25 +650,20 @@ bool OutboundPlaceFromParam::readSlotsFromParam()
     tf::poseEigenToMsg(T_slot_approach,slot_.location.approach_relative_pose);
     tf::poseEigenToMsg(T_slot_approach,slot_.location.leave_relative_pose);
     
-    slots.push_back(slot_);
-  }
+    std::vector<manipulation_msgs::Slot> slot_vct;
+    slot_vct.push_back(slot_);
 
-  if (slots.size()!=0)
-  {
     manipulation_msgs::AddSlots add_slots_srv;
-    add_slots_srv.request.add_slots = slots;
+    add_slots_srv.request.slots_group_name = slots_group;
+    add_slots_srv.request.add_slots = slot_vct;
 
     if (!add_slots_client_.call(add_slots_srv))
+    {
+      ROS_WARN("Can't add slot to the location manager.");
       return false;
+    }
+  }
 
-    ROS_INFO("Added %lu slots.", slots.size());  
-  }
-  else
-  {
-    ROS_WARN("Can't add any slot to the location manager.");
-    return false;
-  }
-    
   return true;
 }
 

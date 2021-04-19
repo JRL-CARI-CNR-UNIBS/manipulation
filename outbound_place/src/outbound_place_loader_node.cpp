@@ -50,6 +50,14 @@ int main(int argc, char **argv)
 
   oub = std::make_shared<manipulation::OutboundPlaceFromParam>(nh);
 
+  // Groups need to be loaded before the slots because it supposed that a slot is
+  // always belonging to a slots group
+  
+ if (!oub->readSlotsGroupFromParam())
+  {
+    ROS_ERROR("Unable to load slots group");
+    return 0;
+  }
   if (!oub->readSlotsFromParam())
   {
     ROS_ERROR("Unable to load slots");

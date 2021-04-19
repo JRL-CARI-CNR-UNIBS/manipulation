@@ -26,7 +26,8 @@ add_message_files(
   Grasp.msg
   Location.msg
   Object.msg
-  Slot.msg	  
+  Slot.msg
+  SlotsGroup.msg	  
   )
 
 add_service_files(
@@ -35,6 +36,7 @@ add_service_files(
   AddObjects.srv
   AddLocations.srv
   AddSlots.srv
+  AddSlotsGroup.srv
   JobExecution.srv
   ListOfObjects.srv
   RemoveBoxes.srv
@@ -42,6 +44,7 @@ add_service_files(
   RemoveObjects.srv
   RemoveObjectFromSlot.srv
   RemoveSlots.srv
+  RemoveSlotsGroup.srv
   ResetBoxes.srv
   ResetSlots.srv
   )

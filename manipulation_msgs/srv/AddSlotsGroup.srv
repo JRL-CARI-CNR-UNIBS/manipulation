@@ -1,0 +1,5 @@
+manipulation_msgs/SlotsGroup[] add_slots_groups
+---
+int8 results
+int8 Success=0
+int8 Error=-1

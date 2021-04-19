@@ -60,8 +60,9 @@ namespace manipulation
 
       std::map<std::string,tf::Transform> m_tf;
 
-      ros::ServiceServer m_add_obj_srv;
-      ros::ServiceServer m_add_box_srv;
+      ros::ServiceServer m_add_boxes_srv;
+      ros::ServiceServer m_remove_boxes_srv;
+      ros::ServiceServer m_add_objects_srv;
       ros::ServiceServer m_remove_objects_srv;
       ros::ServiceServer m_list_objects_srv;
       ros::ServiceServer m_reset_srv;
