@@ -63,6 +63,8 @@ bool removeLocation(const ros::NodeHandle& nh,
   return true; 
 }
 
+
+// Grasp
 Grasp::Grasp( const ros::NodeHandle& nh,
               const manipulation_msgs::Grasp& grasp):
               m_nh(nh),
@@ -90,6 +92,8 @@ Grasp::~Grasp()
   }
 }
 
+
+// Object
 Object::Object( const ros::NodeHandle& nh,
                 const manipulation_msgs::Object& object ):
                 m_nh(nh),
@@ -98,7 +102,7 @@ Object::Object( const ros::NodeHandle& nh,
   m_name = object.name;
   m_type = object.type;
 
-  for (const manipulation_msgs::Grasp grasp: object.grasping_locations )
+  for (const manipulation_msgs::Grasp& grasp: object.grasping_locations )
   {
     m_grasp.push_back(std::make_shared<manipulation::Grasp>(m_nh,grasp));
     if(!m_grasp.back()->getIntState())
@@ -117,9 +121,9 @@ std::vector<std::string> Object::getGraspLocationNames()
 {
   std::vector<std::string> grasp_location_names;
 
-  for (const manipulation::GraspPtr& grasp: m_grasp )
-    grasp_location_names.push_back(grasp->getLocationName());
-
+  for (std::vector<GraspPtr>::iterator it = m_grasp.begin(); it != m_grasp.end(); it++)
+    grasp_location_names.push_back((*it)->getLocationName());
+  
   return grasp_location_names;
 }
 
@@ -135,6 +139,8 @@ manipulation::GraspPtr Object::getGrasp(const std::string& grasp_location_name)
   return nullptr;
 }
 
+
+// Box
 Box::Box( const ros::NodeHandle& nh,
           const manipulation_msgs::Box& box):
           m_nh(nh),
@@ -150,7 +156,7 @@ Box::Box( const ros::NodeHandle& nh,
   m_height = box.height;
   m_location_name = box.location.name;
     
-  for (const manipulation_msgs::Object object: box.objects)
+  for (const manipulation_msgs::Object& object: box.objects)
   {
     m_objects.insert(std::pair<std::string,ObjectPtr>(object.name, std::make_shared<manipulation::Object>(m_nh,object)));
     if (!m_objects.at(object.name)->getIntState())
@@ -185,8 +191,8 @@ bool Box::addObject(const manipulation_msgs::Object& object)
   return true;
 }
 
- bool Box::addObject(const manipulation::ObjectPtr& object)
- {  
+bool Box::addObject(const manipulation::ObjectPtr& object)
+{  
   if (m_objects.find(object->getName()) != m_objects.end())
   {
     ROS_ERROR("The object: %s of the type: %s already exists in the box %s.", object->getName().c_str(),object->getType().c_str(),m_name.c_str());
@@ -198,8 +204,7 @@ bool Box::addObject(const manipulation_msgs::Object& object)
       m_objects.erase(m_objects.find(object->getName()));
 
   return true;
-
- }
+}
 
 void Box::removeAllObjects()
 {
@@ -246,27 +251,37 @@ std::string Box::findObjectByGraspingLocation(const std::string& grasp_location_
   return std::string();
 }
 
+ObjectPtr Box::getObject(const std::string& object_name)
+{
+  if (m_objects.find(object_name) != m_objects.end())
+    return m_objects.at(object_name);
+  else
+    return nullptr;
+}
+
 std::vector<ObjectPtr> Box::getAllObjects()
 {
   std::vector<ObjectPtr> objects;
-  for (const std::pair<std::string,ObjectPtr> obj: m_objects)
-    objects.push_back(obj.second);
+  for (std::map<std::string,ObjectPtr>::iterator it = m_objects.begin(); it != m_objects.end(); it++)
+    objects.push_back(it->second);
+
   return objects;
 }
-
 
 std::vector<ObjectPtr> Box::getObjectsByType(const std::string& object_type)
 {
   std::vector<ObjectPtr> objects;
-
   for (std::map<std::string,ObjectPtr>::iterator it = m_objects.begin(); it != m_objects.end(); it++)
   {
     if ( it->second->getType() == object_type )
       objects.push_back(it->second);
   }  
+
   return objects;
 }
 
+
+// Slot
 Slot::Slot( const ros::NodeHandle& nh,
             const manipulation_msgs::Slot& slot):
             m_nh(nh),
@@ -315,7 +330,6 @@ bool Slot::getSlotAvailability()
     return true;
   else
     return false;
-    
 }
 
 void Slot::addObjectToSlot()
@@ -336,4 +350,161 @@ void Slot::resetSlot()
     m_slot_availability = m_slot_size;
 }
 
+
+// SlotsGroup
+SlotsGroup::SlotsGroup( const ros::NodeHandle& nh,
+                        const manipulation_msgs::SlotsGroup& slots_group):
+                        m_nh(nh),
+                        m_group_size(0),
+                        m_int_state(true)
+{
+  m_group_name = slots_group.name;
+
+  for (const manipulation_msgs::Slot& slot: slots_group.slots)
+  {
+    m_slots.insert(std::pair<std::string,SlotPtr>(slot.name, std::make_shared<manipulation::Slot>(m_nh,slot)));
+    if (!m_slots.at(slot.name)->getIntState())
+    {
+      m_slots.erase(m_slots.find(slot.name));
+      continue;
+    }
+
+    computeGroupSize();
+  }
+  
+  ROS_INFO("Added the slots group %s.", m_group_name.c_str()); 
+
 }
+
+SlotsGroup::~SlotsGroup()
+{
+  // nothing to do
+}
+
+bool SlotsGroup::addSlot(const manipulation_msgs::Slot& slot)
+{
+  if (m_slots.find(slot.name) != m_slots.end())
+  {
+    ROS_ERROR("The slot: %s already exists in the group %s.", slot.name.c_str(),m_group_name.c_str());
+    return false;
+  }
+
+  m_slots.insert(std::pair<std::string,SlotPtr>(slot.name,std::make_shared<manipulation::Slot>(m_nh,slot)));
+
+  if (!m_slots.at(slot.name)->getIntState())
+  {
+    m_slots.erase(m_slots.find(slot.name));
+    return false;
+  }
+
+  computeGroupSize();
+
+  return true;
+}
+
+bool SlotsGroup::addSlot(const manipulation::SlotPtr& slot)
+{
+  if (m_slots.find(slot->getName()) != m_slots.end())
+  {
+    ROS_ERROR("The slot: %s already exists in the group %s.", slot->getName().c_str(),m_group_name.c_str());
+    return false;
+  }
+
+  m_slots.insert(std::pair<std::string,SlotPtr>(slot->getName(),slot));
+  if (!m_slots.at(slot->getName())->getIntState())
+  {
+    m_slots.erase(m_slots.find(slot->getName()));
+    return false;
+  }
+
+  computeGroupSize();
+
+  return true;
+}
+
+bool SlotsGroup::removeSlot(const std::string& slot_name)
+{
+  if (m_slots.find(slot_name) == m_slots.end())
+  {
+    ROS_ERROR("The slot %s is not in the group %s", slot_name.c_str(), m_group_name.c_str());
+    return false;
+  }
+
+  m_slots.erase(m_slots.find(slot_name));
+  ROS_INFO("The slot %s has been removed from the group %s", slot_name.c_str(), m_group_name.c_str());
+
+  computeGroupSize();
+
+  return true;
+
+}
+
+bool SlotsGroup::findSlot(const std::string& slot_name)
+{
+  if (m_slots.find(slot_name) == m_slots.end())
+  {
+    ROS_INFO("Can't find the slot %s in the group %s", slot_name.c_str(), m_group_name.c_str());
+    return false;
+  }
+
+  ROS_INFO("Found the slot %s in the group %s", slot_name.c_str(), m_group_name.c_str());
+
+  return true;
+}
+
+SlotPtr SlotsGroup::getSlot(const std::string& slot_name)
+{
+  if (m_slots.find(slot_name) != m_slots.end())
+    return m_slots.at(slot_name);
+  else
+    return nullptr;
+}
+
+std::vector<SlotPtr> SlotsGroup::getAllSlots()
+{
+  std::vector<SlotPtr> slots;
+
+  for (std::map<std::string,SlotPtr>::iterator it = m_slots.begin(); it != m_slots.end(); it++)
+    slots.push_back(it->second);
+
+  return slots;
+}
+
+void SlotsGroup::addObjectToSlot(const std::string& slot_name)
+{
+  if(m_slots.find(slot_name) != m_slots.end())
+    m_slots.at(slot_name)->addObjectToSlot();
+
+  return;
+}
+
+void SlotsGroup::removeObjectFromSlot(const std::string& slot_name)
+{
+  if(m_slots.find(slot_name) != m_slots.end())
+    m_slots.at(slot_name)->removeObjectFromSlot();
+
+  return;  
+}
+
+void SlotsGroup::resetSlot()
+{
+  for (std::map<std::string,SlotPtr>::iterator it = m_slots.begin(); it != m_slots.end(); it++)
+    it->second->resetSlot();
+
+  return; 
+}
+
+void SlotsGroup::computeGroupSize()
+{
+  m_group_size = 0;
+  for (std::map<std::string,SlotPtr>::iterator it = m_slots.begin(); it != m_slots.end(); it++)
+  {
+    if(m_slots.at(it->first)->getSlotSize() < 0 || m_group_size < 0)  
+      m_group_size = -1;
+    else
+      m_group_size += m_slots.at(it->first)->getSlotSize();
+  }
+    
+}
+
+} // end of manipulation namespace

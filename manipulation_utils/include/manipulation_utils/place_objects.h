@@ -28,6 +28,8 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <manipulation_msgs/AddSlotsGroup.h>
+#include <manipulation_msgs/RemoveSlotsGroup.h>
 #include <manipulation_msgs/AddSlots.h>
 #include <manipulation_msgs/RemoveSlots.h>
 #include <manipulation_msgs/RemoveObjectFromSlot.h>
@@ -49,6 +51,8 @@ namespace manipulation
       ros::NodeHandle m_nh;
       ros::NodeHandle m_pnh;
 
+      ros::ServiceServer m_add_slots_group_srv;
+      ros::ServiceServer m_remove_slots_group_srv;
       ros::ServiceServer m_add_slots_srv;
       ros::ServiceServer m_remove_slots_srv;
       ros::ServiceServer m_remove_obj_from_slot_srv;      
@@ -56,7 +60,7 @@ namespace manipulation
       ros::ServiceClient m_detach_object_srv;
       ros::ServiceClient m_remove_object_from_scene_srv;
      
-      std::map<std::string,SlotPtr> m_slots;
+      std::map<std::string,SlotsGroupPtr> m_slots_group;
 
       tf::TransformBroadcaster m_broadcaster;
       std::map<std::string,tf::Transform> m_tf;
@@ -68,6 +72,12 @@ namespace manipulation
                     const ros::NodeHandle& m_pnh);
   
       bool init();
+
+      bool addSlotsGroupCb( manipulation_msgs::AddSlotsGroup::Request& req, 
+                            manipulation_msgs::AddSlotsGroup::Response& res);
+
+      bool removeSlotsGroupCb(manipulation_msgs::RemoveSlotsGroup::Request& req, 
+                              manipulation_msgs::RemoveSlotsGroup::Response& res);
 
       bool addSlotsCb(manipulation_msgs::AddSlots::Request& req, 
                       manipulation_msgs::AddSlots::Response& res);

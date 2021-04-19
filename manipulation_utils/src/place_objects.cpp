@@ -50,7 +50,9 @@ namespace manipulation
   {
     if (!SkillBase::init())
       return false;
-    
+
+    m_add_slots_group_srv = m_pnh.advertiseService("add_slots_group",&PlaceObjects::addSlotsGroupCb,this);
+    m_remove_slots_group_srv = m_pnh.advertiseService("remove_slots_group",&PlaceObjects::removeSlotsGroupCb,this);
     m_add_slots_srv = m_pnh.advertiseService("add_slots",&PlaceObjects::addSlotsCb,this);
     m_remove_slots_srv = m_pnh.advertiseService("remove_slots",&PlaceObjects::removeSlotsCb,this);
     m_remove_obj_from_slot_srv = m_pnh.advertiseService("remove_obj_from_slot",&PlaceObjects::removeObjectFromSlotCb,this);
@@ -84,44 +86,108 @@ namespace manipulation
     return true;
   }
 
-  bool PlaceObjects::addSlotsCb(manipulation_msgs::AddSlots::Request& req, 
-                                manipulation_msgs::AddSlots::Response& res)
-  {
-    bool slot_added = false;
-    for (const manipulation_msgs::Slot& slot: req.add_slots )
+  bool PlaceObjects::addSlotsGroupCb( manipulation_msgs::AddSlotsGroup::Request& req, 
+                                      manipulation_msgs::AddSlotsGroup::Response& res)
+  { 
+    bool slot_added, slots_group_added = false;
+    for (const manipulation_msgs::SlotsGroup& slots_group: req.add_slots_groups )
     {
-      m_slots.insert(std::pair<std::string,SlotPtr>(slot.name,std::make_shared<manipulation::Slot>(m_pnh,slot)));
-      if (!m_slots.at(slot.name)->getIntState())
+      if(m_slots_group.find(slots_group.name) != m_slots_group.end())
       {
-         m_slots.erase(m_slots.find(slot.name));
-         res.results = manipulation_msgs::AddSlots::Response::Error;
+        for(const manipulation_msgs::Slot& slot: slots_group.slots)
+        {
+          if (!m_slots_group.at(slots_group.name)->addSlot(slot))
+            m_slots_group.erase(m_slots_group.find(slots_group.name));
+          else
+          {
+            ROS_INFO("The slot %s has been added to the group %s.", slot.name.c_str(), slots_group.name.c_str() );
+            slot_added = true;
+          }
+        }
       }
       else
       {
-        ROS_INFO("The slot %s has been added.", slot.name.c_str() );
+        m_slots_group.insert(std::pair<std::string,SlotsGroupPtr>(slots_group.name,std::make_shared<manipulation::SlotsGroup>(m_pnh,slots_group)));
+        if (!m_slots_group.at(slots_group.name)->getIntState())
+        {
+          m_slots_group.erase(m_slots_group.find(slots_group.name));
+          slots_group_added = false;
+        }
+        else
+          slots_group_added = true;
+      }
+    }
+
+    if (slot_added || slots_group_added)
+      res.results = manipulation_msgs::AddSlotsGroup::Response::Success;
+    else
+      res.results = manipulation_msgs::AddSlotsGroup::Response::Error;
+
+    return (slot_added || slots_group_added);
+  }
+
+  bool PlaceObjects::removeSlotsGroupCb(manipulation_msgs::RemoveSlotsGroup::Request& req, 
+                                        manipulation_msgs::RemoveSlotsGroup::Response& res)
+  {
+    for (const std::string& slot_name: req.slots_group_names)
+    {
+      if(m_slots_group.find(slot_name) != m_slots_group.end())
+      {
+        m_slots_group.erase(m_slots_group.find(slot_name));
+        ROS_INFO("The slot %s has been removed.", slot_name.c_str() );
+      }
+      else
+        ROS_ERROR("Can't remove slot %s, the group doesn't exists.", slot_name.c_str() );
+    }
+    return true; 
+  }
+
+  bool PlaceObjects::addSlotsCb(manipulation_msgs::AddSlots::Request& req, 
+                                manipulation_msgs::AddSlots::Response& res)
+  {
+    if (m_slots_group.find(req.slots_group_name) == m_slots_group.end())
+    {
+      ROS_ERROR("Can't add slots the group %s is not available.", req.slots_group_name.c_str());
+      res.results = manipulation_msgs::AddSlots::Response::SlotsGroupNotFound;
+      return false;
+    }
+
+    bool slot_added = false;
+
+    for ( const manipulation_msgs::Slot& slot: req.add_slots )
+    {
+      if (!m_slots_group.at(req.slots_group_name)->addSlot(slot))
+        m_slots_group.erase(m_slots_group.find(req.slots_group_name));
+      else
+      {
+        ROS_INFO("The slot %s has been added to the group %s.", slot.name.c_str(), req.slots_group_name.c_str() );
         slot_added = true;
       }
     }
 
     if (slot_added)
-    {
       res.results = manipulation_msgs::AddSlots::Response::Success;
-      return true;
-    }
     else
-    {
       res.results = manipulation_msgs::AddSlots::Response::Error;
-      return false;
-    }
+    
+    return slot_added;
   }
 
   bool PlaceObjects::removeSlotsCb( manipulation_msgs::RemoveSlots::Request& req, 
                                     manipulation_msgs::RemoveSlots::Response& res)
   {
-    for (const std::string& slot_name: req.slot_names)
+    for (std::map<std::string,SlotsGroupPtr>::iterator it = m_slots_group.begin(); it != m_slots_group.end(); it++)
     {
-      if(m_slots.find(slot_name) != m_slots.end())
+      for (const std::string& slot_name: req.slots_names)
       {
+        if(it->second->findSlot(slot_name))
+        {
+          if (!it->second->removeSlot(slot_name))
+          {
+            ROS_WARN("Can't remove the slot %s from the group %s", slot_name.c_str(), it->first.c_str());
+            continue;
+          }
+
           if (m_tf.find("place/approach/"+slot_name) != m_tf.end())
             m_tf.erase(m_tf.find("place/approach/"+slot_name));
 
@@ -131,64 +197,63 @@ namespace manipulation
           if (m_tf.find("place/leave/"+slot_name) != m_tf.end())
             m_tf.erase(m_tf.find("place/leave/"+slot_name));
 
-        m_slots.erase(m_slots.find(slot_name));
-        ROS_INFO("The slot %s has been removed.", slot_name.c_str() );
-      }
-      else
-      {
-        ROS_ERROR("Can't remove slot %s, the slot doesn't exist.", slot_name.c_str() );
-        return false;    
-      }
-        
+          ROS_INFO("The slot %s has been removed from group %s", slot_name.c_str(), it->first.c_str() );
+
+        }          
+      }    
     }
+
     return true;
   }
 
   bool PlaceObjects::removeObjectFromSlotCb(manipulation_msgs::RemoveObjectFromSlot::Request& req, 
                                             manipulation_msgs::RemoveObjectFromSlot::Response& res)
   {
-    if(m_slots.find(req.slot_name) != m_slots.end())
+    bool slot_removed = false;
+    for (std::map<std::string,SlotsGroupPtr>::iterator  it = m_slots_group.begin(); 
+                                                        it != m_slots_group.end(); it++)
     {
-      object_loader_msgs::RemoveObjects remove_srv;
-      remove_srv.request.obj_ids.push_back(req.object_to_remove_name);
-      ROS_INFO("Remove %s",req.object_to_remove_name.c_str());
-      if (!m_remove_object_from_scene_srv.call(remove_srv))
+      if(it->second->findSlot(req.slot_name))
       {
-        ROS_ERROR("Unaspected error calling %s service",m_remove_object_from_scene_srv.getService().c_str());
-        return false;
-      }
-      if (!remove_srv.response.success)
-      {
-        ROS_ERROR("Unable to remove object id %s",req.object_to_remove_name.c_str());
-        return false;
-      }
-      ROS_INFO("Remove collision object %s ",req.object_to_remove_name.c_str());
+        object_loader_msgs::RemoveObjects remove_srv;
+        remove_srv.request.obj_ids.push_back(req.object_to_remove_name);
+        ROS_INFO("Remove %s",req.object_to_remove_name.c_str());
+        if (!m_remove_object_from_scene_srv.call(remove_srv))
+        {
+          ROS_ERROR("Unaspected error calling %s service",m_remove_object_from_scene_srv.getService().c_str());
+          return false;
+        }
+        if (!remove_srv.response.success)
+        {
+          ROS_ERROR("Unable to remove object id %s",req.object_to_remove_name.c_str());
+          return false;
+        }
+        ROS_INFO("Remove collision object %s ",req.object_to_remove_name.c_str());
 
-
-      m_slots.at(req.slot_name)->removeObjectFromSlot();
-      ROS_INFO("Removed %s from the slot %s.", req.object_to_remove_name.c_str(), req.slot_name.c_str() );   
+        it->second->removeObjectFromSlot(req.slot_name);
+        ROS_INFO("Removed %s from the slot %s.", req.object_to_remove_name.c_str(), req.slot_name.c_str() );   
+        slot_removed = true;
+      }
     }
-    else
-    {
+
+    if (!slot_removed)
       ROS_ERROR("The slot %s is not available.", req.slot_name.c_str() );
-      return false;
-    }
-
-    return true; 
+   
+    return slot_removed; 
   }
 
   bool PlaceObjects::resetSlotsCb(manipulation_msgs::ResetSlots::Request& req, 
                                   manipulation_msgs::ResetSlots::Response& res)
   {
-    for (const std::string& slot_name: req.slot_names)
+    for (const std::string& slot_group_name: req.slots_group_name)
     {
-      if (m_slots.find(slot_name) != m_slots.end())
+      if (m_slots_group.find(slot_group_name) != m_slots_group.end())
       {
-        m_slots.find(slot_name)->second->resetSlot();
-        ROS_INFO("Reset the objects in the slot %s", slot_name.c_str());
+        m_slots_group.find(slot_group_name)->second->resetSlot();
+        ROS_INFO("Reset the objects in the slots of group %s", slot_group_name.c_str());
       }
       else
-        ROS_ERROR("Cannot reset objects in the box %s the specified box does not exist.", slot_name.c_str());
+        ROS_ERROR("Can't reset slots in the group %s the specified group doesn't exist.", slot_group_name.c_str());
     }
     return true;
   }
@@ -210,7 +275,7 @@ namespace manipulation
       ros::Time t_start = ros::Time::now();
     
       /* Check if there is an available slot */
-      if (m_slots.size() == 0)
+      if (m_slots_group.size() == 0)
       {
         ROS_ERROR("No available slot to place objects");
         action_res.result = manipulation_msgs::PlaceObjectsResult::NotInitialized;
@@ -219,20 +284,21 @@ namespace manipulation
       }
 
       std::vector<std::string> available_slot_names;
-      for (const std::string& slot_name: goal->slot_names)
+      for (const std::string& slots_group_names: goal->slots_group_names)
       {
-        if (m_slots.find(slot_name) == m_slots.end())
+        if (m_slots_group.find(slots_group_names) == m_slots_group.end())
         {
-          ROS_WARN("Slot %s is not available to place the object", slot_name.c_str());
+          ROS_WARN("Slot group %s is not available to place the object", slots_group_names.c_str());
           continue;
         }
-          
-        if (!m_slots.at(slot_name)->getSlotAvailability())
+
+        std::vector<SlotPtr> slot_vct_ptr = m_slots_group.at(slots_group_names)->getAllSlots();     
+
+        for (const manipulation::SlotPtr& slot_ptr: slot_vct_ptr)
         {
-          ROS_WARN("The slot %s is full", slot_name.c_str());
-          continue;
+          if(slot_ptr->getSlotAvailability())  
+            available_slot_names.push_back(slot_ptr->getLocationName());
         }
-        available_slot_names.push_back(m_slots.at(slot_name)->getLocationName());
       }
 
       if(available_slot_names.size() == 0)
@@ -299,7 +365,27 @@ namespace manipulation
         return;
       }
 
-      manipulation::SlotPtr selected_slot = m_slots.at(best_slot_name);
+      manipulation::SlotPtr selected_slot;
+      std::string selected_group_name;  
+      for (std::map<std::string,SlotsGroupPtr>::iterator  it = m_slots_group.begin(); 
+                                                          it != m_slots_group.end(); it++)   
+      {
+        if(it->second->findSlot(best_slot_name))
+        {
+          selected_slot = it->second->getSlot(best_slot_name);      
+          selected_group_name = it->first;
+          break;
+        }
+      }
+
+      if (!selected_slot)
+      {
+        action_res.result = manipulation_msgs::PlaceObjectsResult::ReturnError;
+        ROS_ERROR("Nullptr for the selected slot %s",best_slot_name.c_str());
+        as->setAborted(action_res,"can't find the a valid slot");
+        return;
+      }
+
 
       ROS_INFO("Group %s: plan to approach in %f second",group_name.c_str(),plan.planning_time_);
       ros::Time t_planning = ros::Time::now();
@@ -477,8 +563,7 @@ namespace manipulation
         return;
       }
 
-      m_slots.at(best_slot_name)->addObjectToSlot();
-
+      m_slots_group.at(selected_group_name)->addObjectToSlot(selected_slot->getName());
 
       /* Planning to leave position after object placing */
 

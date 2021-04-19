@@ -50,8 +50,9 @@ namespace manipulation
     if (!SkillBase::init())  
       return false;
     
-    m_add_obj_srv = m_pnh.advertiseService("add_objects",&PickObjects::addObjectsCb,this);
-    m_add_box_srv = m_pnh.advertiseService("add_boxes",&PickObjects::addBoxesCb,this);
+    m_add_boxes_srv = m_pnh.advertiseService("add_boxes",&PickObjects::addBoxesCb,this);
+    m_remove_boxes_srv = m_pnh.advertiseService("remove_boxes",&PickObjects::removeBoxesCb,this);
+    m_add_objects_srv = m_pnh.advertiseService("add_objects",&PickObjects::addObjectsCb,this);
     m_remove_objects_srv = m_pnh.advertiseService("remove_objects",&PickObjects::removeObjectsCb,this);
     m_list_objects_srv = m_pnh.advertiseService("list_objects",&PickObjects::listObjectsCb,this);
     m_reset_srv = m_pnh.advertiseService("inboud/reset_box",&PickObjects::resetBoxesCb,this);
@@ -85,17 +86,41 @@ namespace manipulation
   bool PickObjects::addBoxesCb( manipulation_msgs::AddBoxes::Request& req,
                                 manipulation_msgs::AddBoxes::Response& res)
   {
+    bool objects_added, boxes_added = false;
     for (const manipulation_msgs::Box& box: req.add_boxes )
     {
-      m_boxes.insert(std::pair<std::string,BoxPtr>(box.name,std::make_shared<manipulation::Box>(m_pnh,box)));
-      if (!m_boxes.at(box.name)->getIntState())
+      if(m_boxes.find(box.name) != m_boxes.end())
       {
-         m_boxes.erase(m_boxes.find(box.name));
-         res.results = manipulation_msgs::AddBoxes::Response::Error;
+        for (const manipulation_msgs::Object& object: box.objects )
+        {
+          if(!m_boxes.find(box.name)->second->addObject(object))
+            m_boxes.erase(m_boxes.find(box.name));
+          else
+          {
+            ROS_INFO("Added the object %s of the type %s in box %s",object.name.c_str(), object.type.c_str(), box.name.c_str());
+            objects_added = true;   
+          }
+        }
+      }
+      else
+      {
+        m_boxes.insert(std::pair<std::string,BoxPtr>(box.name,std::make_shared<manipulation::Box>(m_pnh,box)));
+        if (!m_boxes.at(box.name)->getIntState())
+        {
+          m_boxes.erase(m_boxes.find(box.name));
+          continue;
+        }
+        boxes_added = true;
       }
     }
-    res.results = manipulation_msgs::AddBoxes::Response::Success;
-    return true;
+    
+    if (objects_added || boxes_added)
+      res.results = manipulation_msgs::AddBoxes::Response::Success;
+    else
+      res.results = manipulation_msgs::AddBoxes::Response::Error;
+
+    return ( objects_added || boxes_added);
+
   }
 
   bool PickObjects::removeBoxesCb(manipulation_msgs::RemoveBoxes::Request& req,
@@ -109,7 +134,7 @@ namespace manipulation
         ROS_INFO("The box %s has been removed.", box_name.c_str() );
       }
       else
-        ROS_ERROR("Can't remove box %s, the box doesn't exist.", box_name.c_str() );
+        ROS_ERROR("Can't remove boxes %s, the box doesn't exists.", box_name.c_str() );
     }
     return true;
   }
@@ -117,25 +142,33 @@ namespace manipulation
   bool PickObjects::addObjectsCb( manipulation_msgs::AddObjects::Request& req,
                                   manipulation_msgs::AddObjects::Response& res)
   {
-    for (const manipulation_msgs::Object& object: req.add_objects )
+
+    if (m_boxes.find(req.box_name) == m_boxes.end())
     {
-      if (m_boxes.find(req.box_name) == m_boxes.end())
-      {
-        ROS_ERROR("Can't add object %s, the box %s does not exist.", object.name.c_str(),
-                                                                      req.box_name.c_str());
-        return false;
-      }
-
-      if(!m_boxes.find(req.box_name)->second->addObject(object))
-        return false;  
-
-      ROS_INFO("Added the object %s of the type %s in box %s",object.name.c_str(),
-                                                              object.type.c_str(),
-                                                              req.box_name.c_str());
+      ROS_ERROR("Can't add objects the box %s is not available.", req.box_name.c_str());
+      res.results = manipulation_msgs::AddObjects::Response::BoxNotFound;
+      return false;
     }
 
-    res.results = manipulation_msgs::AddObjects::Response::Success;
-    return true;
+    bool objects_added = false;
+
+    for (const manipulation_msgs::Object& object: req.add_objects )
+    {
+      if(!m_boxes.find(req.box_name)->second->addObject(object))
+        m_boxes.erase(m_boxes.find(req.box_name));
+      else
+      {
+        ROS_INFO("Added the object %s of the type %s in box %s",object.name.c_str(), object.type.c_str(), req.box_name.c_str());
+        objects_added = true;   
+      }
+    }
+
+    if (objects_added)
+      res.results = manipulation_msgs::AddObjects::Response::Success;
+    else
+      res.results = manipulation_msgs::AddObjects::Response::Error;
+    
+    return objects_added;
   }
 
   bool PickObjects::removeObjectsCb(manipulation_msgs::RemoveObjects::Request& req,
@@ -147,19 +180,21 @@ namespace manipulation
       {
         if (it->second->findObject(object_name))
         {
-          if (m_tf.find("pick/approach/"+object_name) != m_tf.end())
-            m_tf.erase(m_tf.find("pick/approach/"+object_name));
-
-          if (m_tf.find("pick/to/"+object_name) != m_tf.end())
-            m_tf.erase(m_tf.find("pick/to/"+object_name));
-
-          if (m_tf.find("pick/leave/"+object_name) != m_tf.end())
-            m_tf.erase(m_tf.find("pick/leave/"+object_name));
-
           if (!it->second->removeObject(object_name))
             ROS_ERROR("Can't remove object %s.", object_name.c_str()); 
         }
       }
+
+      if (m_tf.find("pick/approach/"+object_name) != m_tf.end())
+        m_tf.erase(m_tf.find("pick/approach/"+object_name));
+
+      if (m_tf.find("pick/to/"+object_name) != m_tf.end())
+        m_tf.erase(m_tf.find("pick/to/"+object_name));
+
+      if (m_tf.find("pick/leave/"+object_name) != m_tf.end())
+        m_tf.erase(m_tf.find("pick/leave/"+object_name));
+
+
       ROS_INFO("Removed object %s.", object_name.c_str()); 
     }
     return true;
@@ -403,13 +438,13 @@ namespace manipulation
         for (const std::string& type_name: goal->object_types)
         {
           std::vector<manipulation::ObjectPtr> objects = selected_box->getObjectsByType(type_name);
+          
           for(const manipulation::ObjectPtr& object: objects)
           {
             std::vector<std::string> object_location_names = object->getGraspLocationNames();
             
             for (const std::string& loc_name: object_location_names)
-              ROS_WARN("Added to possible object location %s", loc_name.c_str());
-            
+              ROS_INFO("Added to possible object location %s", loc_name.c_str());
             
             if (object_location_names.size() != 0)
               possible_object_location_names.insert(possible_object_location_names.end(),
@@ -564,9 +599,6 @@ namespace manipulation
       }
 
       action_res.grasping_object_duration = (ros::Time::now()-t_grasp_init);
-
-      if(!manipulation::removeLocation(m_pnh,selected_object->getName()))
-        ROS_WARN("Unable to remove object %s from LocationManager after gripper attach.", selected_object->getName().c_str());
       
       Eigen::VectorXd object_leave_jconf;
       std::string best_leave_location_name;

@@ -57,9 +57,7 @@ int main(int argc, char **argv)
 
   manipulation_msgs::PlaceObjectsGoal place_goal;
   place_goal.object_name = object_name;
-  //place_goal.slot_names.push_back("A1");
-  place_goal.slot_names.push_back("A3");
-  //place_goal.slot_names.push_back("B1");
+  place_goal.slots_group_names.push_back("group_A");
 
   place_goal.tool_id = "fake_gripper";
   place_goal.property_exec_id = "open";

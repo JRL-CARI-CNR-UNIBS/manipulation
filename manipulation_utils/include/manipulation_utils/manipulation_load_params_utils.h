@@ -34,8 +34,9 @@ namespace manipulation
   {
   protected:
     ros::NodeHandle nh_;
-    ros::ServiceClient add_objs_client_;
+
     ros::ServiceClient add_box_client_;
+    ros::ServiceClient add_objs_client_;
     ros::ServiceClient add_objs_to_scene_client_;
 
   public:
@@ -48,10 +49,13 @@ namespace manipulation
   {
   protected:
     ros::NodeHandle nh_;
+    
+    ros::ServiceClient add_slots_group_client_;
     ros::ServiceClient add_slots_client_;
 
   public:
     OutboundPlaceFromParam(const ros::NodeHandle& nh);
+    bool readSlotsGroupFromParam();
     bool readSlotsFromParam();
   };
 

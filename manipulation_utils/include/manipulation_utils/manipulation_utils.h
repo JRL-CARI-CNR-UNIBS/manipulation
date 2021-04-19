@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <manipulation_msgs/Grasp.h>
 #include <manipulation_msgs/Object.h>
 #include <manipulation_msgs/Slot.h>
-
+#include <manipulation_msgs/SlotsGroup.h>
 
 namespace manipulation 
 {
@@ -177,7 +177,7 @@ namespace manipulation
 
     /* get a specific object 
     */
-    ObjectPtr getObject(const std::string& object_name){return m_objects.at(object_name);}
+    ObjectPtr getObject(const std::string& object_name);
 
     /* get all objects
     */
@@ -209,11 +209,10 @@ namespace manipulation
     bool m_int_state;
     std::string m_name;
     int m_slot_size; // m_slot_size < 0 means infinite space
-
+    int m_slot_availability;
+    
     std::string m_location_name;  // to keep trace about the location inserted in the LocationManager
     
-    int m_slot_availability;
-
     ros::NodeHandle m_nh;
 
   public:
@@ -230,14 +229,6 @@ namespace manipulation
     */
     std::string getName(){return m_name;}
 
-    /* get the availability of the slot
-    */
-    bool getSlotAvailability();
-
-    /* get the slot size
-    */
-    bool getSlotSize(){return m_slot_size;};
-    
     /* get the location name
     */
     std::string getLocationName(){return m_location_name;}
@@ -245,6 +236,14 @@ namespace manipulation
     /* get object internal state
     */
     bool getIntState(){return m_int_state;}
+
+    /* get the availability of the slot
+    */
+    bool getSlotAvailability();
+
+    /* get the slot size
+    */
+    int getSlotSize(){return m_slot_size;};
 
     /* add object to slot
     */
@@ -260,6 +259,78 @@ namespace manipulation
 
   };
   typedef std::shared_ptr<Slot> SlotPtr;
+  class SlotsGroup 
+  {
+  protected:
+    bool m_int_state;
+    std::string m_group_name;
+    int m_group_size;
 
+    ros::NodeHandle m_nh;
+
+    std::map<std::string,SlotPtr> m_slots;
+
+    void computeGroupSize();
+
+  public:
+    /* Slot constructor
+    */
+    SlotsGroup( const ros::NodeHandle& nh,
+                const manipulation_msgs::SlotsGroup& slots_group);
+
+    /* destructor
+    */
+    ~SlotsGroup();
+
+    /* add a slot
+    */
+    bool addSlot(const manipulation_msgs::Slot& slot);
+
+    /* add a slot
+    */
+    bool addSlot(const manipulation::SlotPtr& slot);
+
+    /* remove slot with a specific name, return false if the slot is not in the group
+    */
+    bool removeSlot(const std::string& slot_name);
+
+    /* find a slor with a specific name, return false if the slot is not in the group
+    */
+    bool findSlot(const std::string& slot_name);
+
+    /* get a specific slots
+    */
+    SlotPtr getSlot(const std::string& slot_name);
+    
+    /* get all the slots in the group
+    */
+    std::vector<SlotPtr> getAllSlots();
+
+    /* get group internal state
+    */
+    bool getIntState(){return m_int_state;}
+
+    /* get the name of the slot
+    */
+    std::string getName(){return m_group_name;}
+
+    /* get the slot size
+    */
+    int getSlotsGroupSize(){return m_group_size;};
+
+    /* add object to slot
+    */
+    void addObjectToSlot(const std::string& slot_name);
+
+    /* remove object from slot
+    */
+    void removeObjectFromSlot(const std::string& slot_name);
+
+   /* reset slot in the group
+    */
+    void resetSlot();
+
+  };
+  typedef std::shared_ptr<SlotsGroup> SlotsGroupPtr;
 
 }

@@ -50,6 +50,8 @@ int main(int argc, char **argv)
 
   inb = std::make_shared<manipulation::InboundPickFromParam>(nh);
 
+  // Boxes need to be loaded before the Objects because it supposed that objects are
+  // always contained by a box
   if (!inb->readBoxesFromParam())
   {
     ROS_ERROR("Unable to load boxes");
