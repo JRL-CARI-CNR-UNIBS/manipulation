@@ -264,11 +264,6 @@ bool LocationManager::init()
     }
     m_max_ik_goal_number.insert(std::pair<std::string,int>(group_name,max_ik_goal_number));
 
-    m_fjt_result.insert(std::pair<std::string,double>(group_name,0));
-
-    std::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>> fjt_ac;
-    fjt_ac.reset(new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>("/"+group_name+"/follow_joint_trajectory",true));
-    m_fjt_clients.insert(std::pair<std::string,std::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>>>(group_name,fjt_ac));
   }
 
   m_add_locations_srv = m_nh.advertiseService("add_locations",&LocationManager::addLocationsCb,this);

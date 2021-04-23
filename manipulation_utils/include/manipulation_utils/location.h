@@ -163,7 +163,6 @@ protected:
   std::map<std::string,bool> m_use_single_goal;
   std::map<std::string,std::string> m_tool_names;
 
-  std::map<std::string,double> m_fjt_result;
   std::map<std::string,int> m_max_ik_goal_number;
   std::map<std::string,rosdyn::ChainPtr> m_chains; 
 
@@ -175,8 +174,6 @@ protected:
   ros::Publisher m_display_publisher;
   ros::ServiceServer m_add_locations_srv;
   ros::ServiceServer m_remove_locations_srv;
-
-  std::map<std::string,std::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>>> m_fjt_clients;
 
   bool addLocationFromMsg(const manipulation_msgs::Location& location);
 
