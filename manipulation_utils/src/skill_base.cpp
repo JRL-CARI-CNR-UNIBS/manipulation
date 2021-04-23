@@ -55,7 +55,16 @@ namespace manipulation
       ROS_ERROR("Unable to init SkillBase");
       return false;
     }
-      
+
+    for (const std::string& group_name: m_group_names)
+    {
+      m_fjt_result.insert(std::pair<std::string,double>(group_name,0));
+
+      std::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>> fjt_ac;
+      fjt_ac.reset(new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>("/"+group_name+"/follow_joint_trajectory",true));
+      m_fjt_clients.insert(std::pair<std::string,std::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>>>(group_name,fjt_ac));     
+    }
+     
     m_target_pub = m_nh.advertise<geometry_msgs::PoseStamped>("target_visualization",1);
 
     m_job_srv = m_pnh.serviceClient<manipulation_msgs::JobExecution>("job/"+m_skill_name); 

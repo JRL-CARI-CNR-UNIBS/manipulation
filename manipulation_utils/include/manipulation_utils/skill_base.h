@@ -52,12 +52,15 @@ namespace manipulation
       ros::NodeHandle m_pnh; 
 
       std::string m_skill_name;
-
+      std::map<std::string,double> m_fjt_result;
+      
       ros::Publisher m_target_pub;
       ros::ServiceClient m_job_srv;
       ros::ServiceClient m_set_ctrl_srv;
       
       tf::TransformBroadcaster m_broadcaster;
+
+      std::map<std::string,std::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>>> m_fjt_clients;
 
       bool execute( const std::string& group_name,
                     const moveit::planning_interface::MoveGroupInterface::Plan& plan);
