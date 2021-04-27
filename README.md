@@ -26,12 +26,13 @@ The packages:
 
 5. [go_to_location](go_to_location/README.md)
 
-are packages that show how to create server, client and loader for the basic Skill Actions: pick, place, goto.   
+show how to create server, client and loader for the basic Skill Actions: pick, place, goto.   
 
 ## Installation and ROS-Version 
 This framework was developed using the ROS Noetic distribution. 
 
-Clone the repository into your catkin working directory, a .rosinstall file is provided to solve all the dependencies. Compile with ```catkin build```. 
+The software can be installed with the following [rosinstall file](manipulation.rosinstall). 
+
 ## Developer Contact
 
 **Authors:**   
