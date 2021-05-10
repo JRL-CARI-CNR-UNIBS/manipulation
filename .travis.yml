@@ -12,7 +12,6 @@ notifications:
     on_failure: always #[always|never|change] # default: always
 env:
   global:
-    - ADDITIONAL_DEBS='ros-noetic-eigen-conversions'
     - UPSTREAM_WORKSPACE='manipulation.rosinstall'
     - ROS_PARALLEL_JOBS='-j4'
   matrix:

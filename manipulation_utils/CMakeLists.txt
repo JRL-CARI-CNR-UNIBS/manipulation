@@ -21,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   rosdyn_core
   rosparam_utilities
   std_srvs
+  eigen_conversions
 )
 
 catkin_package(
@@ -29,12 +30,13 @@ catkin_package(
   CATKIN_DEPENDS  manipulation_msgs
                   configuration_msgs 
                   moveit_planning_helper 
-                  object_loader_msgs 
+                  object_loader_msgs                   
                   #collision_detection_gpuvoxel
                   roscpp 
                   rosdyn_core 
                   rosparam_utilities 
                   std_srvs
+                  eigen_conversions
   DEPENDS 
 )
 
