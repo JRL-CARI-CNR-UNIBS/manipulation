@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <eigen_conversions/eigen_msg.h>
 
 #include <moveit/collision_plugin_loader/collision_plugin_loader.h>
 #include <moveit/kinematic_constraints/kinematic_constraint.h>
