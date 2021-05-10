@@ -18,8 +18,6 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rosdyn_core
   rosparam_utilities
-  #tf_conversions
-  #eigen_conversions
 )
 catkin_package(
   INCLUDE_DIRS
@@ -30,12 +28,11 @@ catkin_package(
                   roscpp 
                   rosdyn_core 
                   rosparam_utilities 
-                  #tf_conversions
-                  #eigen_conversions
   DEPENDS 
 )
 
-Message("AAAAAAAAAAAAAA ${catkin_DEPENDS}")
+message("${catkin_LIBRARIES}")
+
 
 include_directories( ${catkin_INCLUDE_DIRS} )
 

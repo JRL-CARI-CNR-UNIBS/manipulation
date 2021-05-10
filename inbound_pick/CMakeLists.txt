@@ -18,8 +18,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_srvs
   rosparam_utilities
   object_loader_msgs
-  #tf_conversions
-  #eigen_conversions
 )
 
 catkin_package(
@@ -33,8 +31,6 @@ catkin_package(
                   std_srvs 
                   rosparam_utilities 
                   object_loader_msgs 
-                  #tf_conversions
-                  #eigen_conversions
   DEPENDS
 )
 include_directories( ${catkin_INCLUDE_DIRS} )
