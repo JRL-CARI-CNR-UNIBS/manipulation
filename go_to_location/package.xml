@@ -25,8 +25,9 @@
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rosdyn_core</exec_depend>
   <exec_depend>rosparam_utilities</exec_depend>
-  <depend>tf_conversions</depend>
-  <depend>eigen_conversions</depend>
+  
+  <!--depend>tf_conversions</depend>
+  <depend>eigen_conversions</depend-->
 
   <export>
   </export>
