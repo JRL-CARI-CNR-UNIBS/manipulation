@@ -31,9 +31,6 @@ catkin_package(
   DEPENDS 
 )
 
-message(FATAL_ERROR "${catkin_LIBRARIES}")
-
-
 include_directories( ${catkin_INCLUDE_DIRS} )
 
 add_executable(${PROJECT_NAME}_server src/go_to_location_server_node.cpp)
