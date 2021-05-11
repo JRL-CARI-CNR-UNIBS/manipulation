@@ -1,1 +1,20 @@
-<!--TO BE DONE-->
+<launch>
+
+<arg name="valgrind" default="false" />
+<arg name="debug" default="false" />
+
+<group if="$(arg valgrind)">
+  <arg unless="$(arg debug)" name="launch_prefix" value="" />
+  <arg     if="$(arg debug)" name="launch_prefix"
+      value="valgrind -v --track-origins=yes --tool=memcheck --leak-check=full --show-reachable=yes  --num-callers=20 --track-fds=yes  --log-file=/home/a.txt" />
+  <test launch-prefix="$(arg launch_prefix)" test-name="test" pkg="manipulation_utils" type="manipulation_utils_test" />
+</group>
+
+<group unless="$(arg valgrind)">
+  <arg unless="$(arg debug)" name="launch_prefix" value="" />
+  <arg     if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
+  <test launch-prefix="$(arg launch_prefix)" test-name="test" pkg="manipulation_utils" type="manipulation_utils_test" />
+</group>
+
+
+</launch>

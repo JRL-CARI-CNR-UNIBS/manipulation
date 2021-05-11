@@ -5,5 +5,5 @@ version: 2
 cli:
   server: https://app.fossa.com
   fetcher: custom
-  project: https://github.com/ManuelBeschi/manipulation.git
+  project: https://github.com/JRL-CARI-CNR-UNIBS/manipulation.git
 analyze: {}
