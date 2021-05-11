@@ -31,8 +31,8 @@ catkin_package(
   DEPENDS 
 )
 
-message("${catkin_LIBRARIES}")
-message(FATAL_ERROR)
+message(FATAL_ERROR "${catkin_LIBRARIES}")
+
 
 include_directories( ${catkin_INCLUDE_DIRS} )
 
