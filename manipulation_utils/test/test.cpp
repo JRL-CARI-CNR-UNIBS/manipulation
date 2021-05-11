@@ -28,9 +28,18 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <gtest/gtest.h>
+#include <gtest/gtest-death-test.h>
+
+#include <ros/ros.h>
+
+////////// TESTS TO BE IMPLEMENTED /////////
+
 int main(int argc, char **argv)
 {
-  //TO BE DONE
-  
-  return 0;
+  testing::InitGoogleTest(&argc, argv);
+
+  ros::init(argc, argv, "test");
+
+  return RUN_ALL_TESTS();
 }

@@ -21,7 +21,6 @@ find_package(catkin REQUIRED COMPONENTS
   rosdyn_core
   rosparam_utilities
   std_srvs
-  tf_conversions
   eigen_conversions
 )
 
@@ -37,7 +36,6 @@ catkin_package(
                   rosdyn_core 
                   rosparam_utilities 
                   std_srvs
-                  tf_conversions
                   eigen_conversions
   DEPENDS 
 )
