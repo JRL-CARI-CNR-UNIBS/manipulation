@@ -14,6 +14,7 @@ env:
   global:
     - UPSTREAM_WORKSPACE='manipulation.rosinstall'
     - ROS_PARALLEL_JOBS='-j4'
+    - CODECOV_TOKEN='db364ca7-bb9a-4ecc-97dd-3c0b0b1f45a7'
   matrix:
     - ROS_DISTRO=noetic ROS_REPO=ros
     - ROS_DISTRO=noetic ROS_REPO=ros-testing

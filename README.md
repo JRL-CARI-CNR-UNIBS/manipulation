@@ -1,6 +1,7 @@
 # manipulation #
 
 [![Build Status](https://travis-ci.com/JRL-CARI-CNR-UNIBS/manipulation.svg?branch=master)](https://travis-ci.com/JRL-CARI-CNR-UNIBS/manipulation)
+[![codecov](https://codecov.io/gh/JRL-CARI-CNR-UNIBS/manipulation/branch/master/graph/badge.svg?token=OZF414VCOL)](https://codecov.io/gh/JRL-CARI-CNR-UNIBS/manipulation)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/c1d5c62b533141428918ecd2c0d8628c)](https://www.codacy.com/gh/JRL-CARI-CNR-UNIBS/manipulation/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=JRL-CARI-CNR-UNIBS/manipulation&amp;utm_campaign=Badge_Grade)
 
 
