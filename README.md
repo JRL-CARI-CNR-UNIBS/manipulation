@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.com/JRL-CARI-CNR-UNIBS/manipulation.svg?branch=master)](https://travis-ci.com/JRL-CARI-CNR-UNIBS/manipulation)
 [![codecov](https://codecov.io/gh/JRL-CARI-CNR-UNIBS/manipulation/branch/master/graph/badge.svg?token=OZF414VCOL)](https://codecov.io/gh/JRL-CARI-CNR-UNIBS/manipulation)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/c1d5c62b533141428918ecd2c0d8628c)](https://www.codacy.com/gh/JRL-CARI-CNR-UNIBS/manipulation/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=JRL-CARI-CNR-UNIBS/manipulation&amp;utm_campaign=Badge_Grade)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FJRL-CARI-CNR-UNIBS%2Fmanipulation.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FJRL-CARI-CNR-UNIBS%2Fmanipulation?ref=badge_shield)
 
 
 ## Description
@@ -63,3 +64,7 @@ The manipualtion framework is developed by CNR-STIIMA (http://www.stiima.cnr.it/
 This project has received funding from the European Union’s Horizon 2020 research and innovation programme under grant agreement No. 820807.
 This website reflects only the author’s view and the European Commission is not responsible for any use that may be made of the information it contains.
 
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FJRL-CARI-CNR-UNIBS%2Fmanipulation.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FJRL-CARI-CNR-UNIBS%2Fmanipulation?ref=badge_large)
