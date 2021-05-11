@@ -18,13 +18,11 @@ find_package(catkin REQUIRED COMPONENTS
   std_srvs
   rosparam_utilities
   object_loader_msgs
-  tf_conversions
-  #eigen_conversions
 )
 
 catkin_package(
   INCLUDE_DIRS
-  LIBRARIES outbound_place
+  LIBRARIES
   CATKIN_DEPENDS  moveit_planning_helper
                   manipulation_msgs 
                   manipulation_utils 
@@ -33,7 +31,6 @@ catkin_package(
                   rosparam_utilities 
                   std_srvs 
                   object_loader_msgs 
-                  tf_conversions 
   DEPENDS
 )
 

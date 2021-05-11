@@ -27,7 +27,6 @@
   <exec_depend>std_srvs</exec_depend>
   <depend>rosparam_utilities</depend>
   <depend>object_loader_msgs</depend>
-  <depend>tf_conversions</depend>
 
   <export>
   </export>

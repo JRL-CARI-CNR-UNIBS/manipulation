@@ -19,6 +19,9 @@
   <build_depend>rosparam_utilities</build_depend>
   <!--build_depend>collision_detection_gpuvoxel</build_depend-->
   <build_depend>std_srvs</build_depend>
+  <build_depend>tf_conversions</build_depend>
+  <build_depend>eigen_conversions</build_depend>
+
   <build_export_depend>manipulation_msgs</build_export_depend>
   <build_export_depend>configuration_msgs</build_export_depend>
   <build_export_depend>moveit_planning_helper</build_export_depend>
@@ -26,8 +29,11 @@
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rosdyn_core</build_export_depend>
   <build_export_depend>rosparam_utilities</build_export_depend>
-  <!--build_export_depend>collision_detection_gpuvoxel</build_export_depend-->
+   <!--build_export_depend>collision_detection_gpuvoxel</build_export_depend-->
   <build_export_depend>std_srvs</build_export_depend>
+  <build_export_depend>tf_conversions</build_export_depend>
+  <build_export_depend>eigen_conversions</build_export_depend>
+
   <exec_depend>manipulation_msgs</exec_depend>
   <exec_depend>configuration_msgs</exec_depend>
   <exec_depend>moveit_planning_helper</exec_depend>
@@ -37,6 +43,8 @@
   <exec_depend>rosparam_utilities</exec_depend>
   <!--exec_depend>collision_detection_gpuvoxel</exec_depend-->
   <exec_depend>std_srvs</exec_depend>
+  <exec_depend>tf_conversions</exec_depend>
+  <exec_depend>eigen_conversions</exec_depend>
 
   <export>
   </export>

@@ -21,6 +21,8 @@ find_package(catkin REQUIRED COMPONENTS
   rosdyn_core
   rosparam_utilities
   std_srvs
+  tf_conversions
+  eigen_conversions
 )
 
 catkin_package(
@@ -29,12 +31,14 @@ catkin_package(
   CATKIN_DEPENDS  manipulation_msgs
                   configuration_msgs 
                   moveit_planning_helper 
-                  object_loader_msgs 
+                  object_loader_msgs                   
                   #collision_detection_gpuvoxel
                   roscpp 
                   rosdyn_core 
                   rosparam_utilities 
                   std_srvs
+                  tf_conversions
+                  eigen_conversions
   DEPENDS 
 )
 
@@ -59,7 +63,7 @@ add_library(${PROJECT_NAME}
             src/skill_base.cpp 
 )
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 install(TARGETS ${PROJECT_NAME}
         ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
