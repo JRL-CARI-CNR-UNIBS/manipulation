@@ -121,7 +121,7 @@ std::vector<std::string> Object::getGraspLocationNames()
 {
   std::vector<std::string> grasp_location_names;
 
-  for (std::vector<GraspPtr>::iterator it = m_grasp.begin(); it != m_grasp.end(); it++)
+  for (std::vector<GraspPtr>::iterator it = m_grasp.begin(); it != m_grasp.end(); ++it)
     grasp_location_names.push_back((*it)->getLocationName());
   
   return grasp_location_names;
@@ -241,7 +241,7 @@ bool Box::findObject(const std::string& object_name)
 
 std::string Box::findObjectByGraspingLocation(const std::string& grasp_location_name)
 {
-  for(std::map<std::string,ObjectPtr>::iterator it = m_objects.begin(); it != m_objects.end(); it++)
+  for(std::map<std::string,ObjectPtr>::iterator it = m_objects.begin(); it != m_objects.end(); ++it)
   {
     std::vector<std::string> location_names = it->second->getGraspLocationNames();
     if (find(location_names.begin(),location_names.end(),grasp_location_name) != location_names.end() )
@@ -262,7 +262,7 @@ ObjectPtr Box::getObject(const std::string& object_name)
 std::vector<ObjectPtr> Box::getAllObjects()
 {
   std::vector<ObjectPtr> objects;
-  for (std::map<std::string,ObjectPtr>::iterator it = m_objects.begin(); it != m_objects.end(); it++)
+  for (std::map<std::string,ObjectPtr>::iterator it = m_objects.begin(); it != m_objects.end(); ++it)
     objects.push_back(it->second);
 
   return objects;
@@ -271,7 +271,7 @@ std::vector<ObjectPtr> Box::getAllObjects()
 std::vector<ObjectPtr> Box::getObjectsByType(const std::string& object_type)
 {
   std::vector<ObjectPtr> objects;
-  for (std::map<std::string,ObjectPtr>::iterator it = m_objects.begin(); it != m_objects.end(); it++)
+  for (std::map<std::string,ObjectPtr>::iterator it = m_objects.begin(); it != m_objects.end(); ++it)
   {
     if ( it->second->getType() == object_type )
       objects.push_back(it->second);
@@ -464,7 +464,7 @@ std::vector<SlotPtr> SlotsGroup::getAllSlots()
 {
   std::vector<SlotPtr> slots;
 
-  for (std::map<std::string,SlotPtr>::iterator it = m_slots.begin(); it != m_slots.end(); it++)
+  for (std::map<std::string,SlotPtr>::iterator it = m_slots.begin(); it != m_slots.end(); ++it)
     slots.push_back(it->second);
 
   return slots;
@@ -488,7 +488,7 @@ void SlotsGroup::removeObjectFromSlot(const std::string& slot_name)
 
 void SlotsGroup::resetSlot()
 {
-  for (std::map<std::string,SlotPtr>::iterator it = m_slots.begin(); it != m_slots.end(); it++)
+  for (std::map<std::string,SlotPtr>::iterator it = m_slots.begin(); it != m_slots.end(); ++it)
     it->second->resetSlot();
 
   return; 
@@ -497,7 +497,7 @@ void SlotsGroup::resetSlot()
 void SlotsGroup::computeGroupSize()
 {
   m_group_size = 0;
-  for (std::map<std::string,SlotPtr>::iterator it = m_slots.begin(); it != m_slots.end(); it++)
+  for (std::map<std::string,SlotPtr>::iterator it = m_slots.begin(); it != m_slots.end(); ++it)
   {
     if(m_slots.at(it->first)->getSlotSize() < 0 || m_group_size < 0)  
       m_group_size = -1;

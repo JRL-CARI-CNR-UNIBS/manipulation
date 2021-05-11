@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 
   ROS_INFO("Outbound slot loaded");
 
-  ros::ServiceServer src = nh.advertiseService("outbound/add_slots",&addObjectsCb);
+  nh.advertiseService("outbound/add_slots",&addObjectsCb);
   ros::spin();
   return 0;
 }

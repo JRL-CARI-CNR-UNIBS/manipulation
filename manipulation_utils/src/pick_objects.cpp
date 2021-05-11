@@ -176,7 +176,7 @@ namespace manipulation
   {
     for (const std::string& object_name: req.object_names)
     {
-      for (std::map<std::string,BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); it++)
+      for (std::map<std::string,BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); ++it)
       {
         if (it->second->findObject(object_name))
         {
@@ -204,7 +204,7 @@ namespace manipulation
                                   manipulation_msgs::ListOfObjects::Response& res)
   {
     std::vector<std::string> object_types, object_names, box_names;
-    for (std::map<std::string,BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); it++)
+    for (std::map<std::string,BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); ++it)
     {
       std::vector<ObjectPtr> objects = it->second->getAllObjects();
       for(const ObjectPtr& object: objects)
@@ -272,7 +272,7 @@ namespace manipulation
         for (const std::string& object_name: goal->object_names)
         {
           ROS_INFO("Adding object %s to the picking list.", object_name.c_str());
-          for (std::map<std::string,BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); it++)
+          for (std::map<std::string,BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); ++it)
           {
             if (it->second->findObject(object_name))
             {
@@ -297,7 +297,7 @@ namespace manipulation
         for (const std::string& type_name: goal->object_types)
         {
           ROS_INFO("Adding objects of the type %s to the picking list.", type_name.c_str());
-          for (std::map<std::string,BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); it++)
+          for (std::map<std::string,BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); ++it)
           {
             std::vector<ObjectPtr> objects = it->second->getObjectsByType(type_name);
             if (objects.size() != 0)

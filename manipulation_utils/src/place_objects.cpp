@@ -176,7 +176,7 @@ namespace manipulation
   bool PlaceObjects::removeSlotsCb( manipulation_msgs::RemoveSlots::Request& req, 
                                     manipulation_msgs::RemoveSlots::Response& res)
   {
-    for (std::map<std::string,SlotsGroupPtr>::iterator it = m_slots_group.begin(); it != m_slots_group.end(); it++)
+    for (std::map<std::string,SlotsGroupPtr>::iterator it = m_slots_group.begin(); it != m_slots_group.end(); ++it)
     {
       for (const std::string& slot_name: req.slots_names)
       {
@@ -211,7 +211,7 @@ namespace manipulation
   {
     bool slot_removed = false;
     for (std::map<std::string,SlotsGroupPtr>::iterator  it = m_slots_group.begin(); 
-                                                        it != m_slots_group.end(); it++)
+                                                        it != m_slots_group.end(); ++it)
     {
       if(it->second->findSlot(req.slot_name))
       {
@@ -368,7 +368,7 @@ namespace manipulation
       manipulation::SlotPtr selected_slot;
       std::string selected_group_name;  
       for (std::map<std::string,SlotsGroupPtr>::iterator  it = m_slots_group.begin(); 
-                                                          it != m_slots_group.end(); it++)   
+                                                          it != m_slots_group.end(); ++it)   
       {
         if(it->second->findSlot(best_slot_name))
         {

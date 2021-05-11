@@ -79,7 +79,6 @@ namespace manipulation
   bool SkillBase::execute(const std::string& group_name,
                           const moveit::planning_interface::MoveGroupInterface::Plan& plan)
   {
-    moveit::planning_interface::MoveGroupInterfacePtr group = m_groups.at(group_name);
     control_msgs::FollowJointTrajectoryGoal goal;
     goal.trajectory = plan.trajectory_.joint_trajectory;
 

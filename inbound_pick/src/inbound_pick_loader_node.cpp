@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 
   ROS_INFO("Inbound boxed loaded");
 
-  ros::ServiceServer src = nh.advertiseService("inbound/add_objects",&addObjectsCb);
+  nh.advertiseService("inbound/add_objects",&addObjectsCb);
   ros::spin();
   return 0;
 }
