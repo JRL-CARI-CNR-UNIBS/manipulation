@@ -32,7 +32,7 @@ catkin_package(
 )
 
 message("${catkin_LIBRARIES}")
-
+message(FATAL_ERROR)
 
 include_directories( ${catkin_INCLUDE_DIRS} )
 
