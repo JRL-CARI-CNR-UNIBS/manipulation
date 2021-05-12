@@ -321,7 +321,7 @@ bool InboundPickFromParam::readObjectFromParam()
     {
       listener.lookupTransform("world",frame_name,t0,transform);
     }
-    catch (tf::TransformException ex)
+    catch (tf::TransformException& ex)
     {
       ROS_ERROR("%s",ex.what());
       ros::Duration(1.0).sleep();
