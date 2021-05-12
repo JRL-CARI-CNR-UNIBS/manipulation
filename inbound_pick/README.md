@@ -1,4 +1,4 @@
-# inbound pick #
+# inbound_pick #
 
 The PickObjects class provide the following actions/services:
  
@@ -18,3 +18,16 @@ The PickObjects class provide the following actions/services:
 | `list_objects` | manipulation_msgs::ListOfObjects | To get a list of all the objects available for picking providing the names and the types | 
 | `inbound/reset_box` | manipulation_msgs::ResetBoxes | To reset all the objects in a list of boxes |
 
+
+## Work in progress
+The manipulation framework package is continuosly evolving. If you find errors or if you have some suggestions or if you want to contribute [please let us know](https://github.com/JRL-CARI-CNR-UNIBS/manipulation/issues).
+
+## Developer Contact
+**Authors:**   
+- Enrico Villagrossi (enrico.villagrossi@stiima.cnr.it)  
+- Manuel Beschi (manuel.beschi@unibs.it)  
+
+ 
+_Software License Agreement (BSD License)_    
+_Copyright (c) 2021, National Research Council of Italy, Institute of Industrial Technologies and Automation_    
+_All rights reserved._

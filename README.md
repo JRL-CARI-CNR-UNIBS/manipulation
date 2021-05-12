@@ -39,7 +39,7 @@ The software can be installed with the following [rosinstall file](manipulation.
 
 
 ## Work in progress
-The manipulation framework package is continuosly evolving. If you find errors or if you have some suggestions, [please let us know](https://github.com/JRL-CARI-CNR-UNIBS/manipulation/issues).
+The manipulation framework package is continuosly evolving. If you find errors or if you have some suggestions or if you want to contribute [please let us know](https://github.com/JRL-CARI-CNR-UNIBS/manipulation/issues).
 
 ## Developer Contact
 **Authors:**   
