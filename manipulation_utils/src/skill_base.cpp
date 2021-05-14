@@ -142,6 +142,11 @@ namespace manipulation
     return;
   }
 
+  void SkillBase::fjtClientWaitForResult(const std::string& group_name)
+  {
+     m_fjt_clients.at(group_name)->waitForResult();
+  }
+
   bool SkillBase::jobExecute( const std::string& tool_id,
                               const std::string& property_id  )
   {

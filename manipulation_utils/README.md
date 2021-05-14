@@ -17,7 +17,7 @@ A *Location Manager* can handles multiple move groups. The planning scene is uni
 
 ### Skill Base module
 
-The *Skill Base* module allows to dynamically load/unload the robot controllers (through the [cnr_ros_control](https://github.com/CNR-STIIMA-IRAS/cnr_ros_control) package) depending on the required robot behavior during the execution of a specific *Sub Action*. The module allows to start and monitor the execution of the trajectories planned by the *Location Manager* for a specific move group and enables the control of the tool required by the *Skill Actions*.
+The *Skill Base* module allows to dynamically load/unload the robot controllers (through the [cnr_ros_control](https://github.com/CNR-STIIMA-IRAS/cnr_ros_control) package) depending on the required robot behavior during the execution of a specific *Sub Action*. The module allows to start and monitor the execution of the trajectories planned by the *Location Manager* for a specific move group and enables the control of the tool required by the *Skill Actions*. The trajectory execution is controlled through a control_msgs::FollowJointTrajectoryAction, the enabled controller need to provide a FollowJointTrajectoryAction server. 
 
 ![*SkillBase* module description.](../documentation/SkillBase_scheme.png)
 

@@ -40,7 +40,7 @@ int main(int argc, char **argv)
   spinner.start();
 
   ROS_INFO("Creating PlaceOject server...");
-  manipulation::PlaceObjects place(nh,pnh);
+  manipulation::PlaceObjects place(nh,pnh,"place");
 
   ros::ServiceClient ps_client = nh.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
   ps_client.waitForExistence();

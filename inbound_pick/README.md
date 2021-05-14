@@ -6,7 +6,11 @@ Examples nodes to create a:
 - *PickObject* action client node
 - *PickObject* loader node
 
-All the available action and services for *PickObject* *Skill Action* are described [here](../manipulation_utils/README.md). 
+All the available action and services for *PickObject* *Skill Action* are described [here](../manipulation_utils/README.md).
+
+The *Sub Actions* of the PickObject *Skill Action* are described below:
+
+![PickObjects *Sub Actions*.](../documentation/PickObjects_sub_actions.png)
 
 ## Work in progress
 The manipulation framework package is continuosly evolving. If you find errors or if you have some suggestions or if you want to contribute [please let us know](https://github.com/JRL-CARI-CNR-UNIBS/manipulation/issues).

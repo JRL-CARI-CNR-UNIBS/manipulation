@@ -41,7 +41,7 @@ int main(int argc, char **argv)
   spinner.start();
 
   ROS_INFO("Creating PickOject server...");
-  manipulation::PickObjects pick(nh,pnh);
+  manipulation::PickObjects pick(nh,pnh,"pick");
 
   ros::ServiceClient ps_client = nh.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
   ps_client.waitForExistence();

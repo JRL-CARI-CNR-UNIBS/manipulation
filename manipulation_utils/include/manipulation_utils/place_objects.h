@@ -68,8 +68,9 @@ namespace manipulation
       std::map<std::string,std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PlaceObjectsAction>>> m_place_servers;
 
     public:
-      PlaceObjects( const ros::NodeHandle& m_nh,
-                    const ros::NodeHandle& m_pnh);
+      PlaceObjects( const ros::NodeHandle& nh,
+                    const ros::NodeHandle& pnh,
+                    const std::string& skill_name);
   
       bool init();
 

@@ -71,6 +71,8 @@ namespace manipulation
                   const control_msgs::FollowJointTrajectoryResultConstPtr& result,
                   const std::string& group_name);
 
+      void fjtClientWaitForResult(const std::string& group_name);
+
       bool jobExecute(const std::string& tool_id,
                       const std::string& property_id );
 

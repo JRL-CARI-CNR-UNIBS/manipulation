@@ -44,6 +44,10 @@ int main(int argc, char **argv)
 
   manipulation_msgs::GoToGoal goto_goal;
   goto_goal.location_name = "warehouse2";
+  goto_goal.to_loc_ctrl_id = "trj_tracker";
+  goto_goal.tool_id = "fake_gripper";
+  goto_goal.property_exec_id = "open";
+
   goto_ac.sendGoalAndWait(goto_goal);
   
   ROS_INFO("GoTo client stopped");

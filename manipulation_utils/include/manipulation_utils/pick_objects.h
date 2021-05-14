@@ -46,8 +46,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace manipulation
 {
-  typedef std::multimap<std::string, Eigen::Affine3d, std::less<std::string>, Eigen::aligned_allocator<std::pair<const std::string, Eigen::Affine3d>>>  PosesMap;
-  typedef std::pair<std::string,Eigen::Affine3d>  PosesPair;
+  //typedef std::multimap<std::string, Eigen::Affine3d, std::less<std::string>, Eigen::aligned_allocator<std::pair<const std::string, Eigen::Affine3d>>>  PosesMap;
+  //typedef std::pair<std::string,Eigen::Affine3d>  PosesPair;
 
   class PickObjects: public SkillBase
   {
@@ -71,8 +71,9 @@ namespace manipulation
       std::map<std::string,std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PickObjectsAction>>> m_pick_servers;
   
     public:
-      PickObjects(const ros::NodeHandle& m_nh,
-                  const ros::NodeHandle& m_pnh);
+      PickObjects(const ros::NodeHandle& nh,
+                  const ros::NodeHandle& pnh,
+                  const std::string& skill_name );
 
       bool init();
 

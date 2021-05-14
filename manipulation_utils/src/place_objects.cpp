@@ -38,10 +38,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace manipulation
 {
   PlaceObjects::PlaceObjects( const ros::NodeHandle& nh, 
-                              const ros::NodeHandle& pnh):
+                              const ros::NodeHandle& pnh,
+                              const std::string& skill_name):
                               m_nh(nh),
                               m_pnh(pnh),
-                              SkillBase(nh,pnh,"place")
+                              SkillBase(nh,pnh,skill_name)
   {
 
   }
@@ -414,6 +415,16 @@ namespace manipulation
         return;
       }
 
+      fjtClientWaitForResult(group_name);
+      
+      if (!wait(group_name))
+      {
+        action_res.result = manipulation_msgs::PlaceObjectsResult::TrajectoryError;
+        ROS_ERROR("Error executing %s/follow_joint_trajectory",group_name.c_str());
+        as->setAborted(action_res,"error in trajectory execution");
+        return;
+      }
+
       // Set the desired tool behaviour 
       if(!goal->property_pre_exec_id.empty())
       {
@@ -481,15 +492,17 @@ namespace manipulation
       action_res.expected_execution_duration += plan.trajectory_.joint_trajectory.points.back().time_from_start;
       action_res.path_length += trajectory_processing::computeTrajectoryLength(plan.trajectory_.joint_trajectory);
 
-      m_fjt_clients.at(group_name)->waitForResult();
-
-      if (!wait(group_name))
-      {
-        action_res.result = manipulation_msgs::PlaceObjectsResult::TrajectoryError;
-        ROS_ERROR("Error executing %s/follow_joint_trajectory",group_name.c_str());
-        as->setAborted(action_res,"error in trajectory execution");
-        return;
-      }
+      //// 
+      // fjtClientWaitForResult(group_name);
+      
+      // if (!wait(group_name))
+      // {
+      //   action_res.result = manipulation_msgs::PlaceObjectsResult::TrajectoryError;
+      //   ROS_ERROR("Error executing %s/follow_joint_trajectory",group_name.c_str());
+      //   as->setAborted(action_res,"error in trajectory execution");
+      //   return;
+      // }
+      /////
 
       disp_trj.trajectory.at(0) = (plan.trajectory_);
       disp_trj.trajectory_start = plan.start_state_;
@@ -506,7 +519,7 @@ namespace manipulation
         return;
       }
 
-      m_fjt_clients.at(group_name)->waitForResult();
+      fjtClientWaitForResult(group_name);
 
       if (!wait(group_name))
       {
@@ -621,12 +634,12 @@ namespace manipulation
         return;
       }
 
-      m_fjt_clients.at(group_name)->waitForResult(); 
+      fjtClientWaitForResult(group_name);
 
       if (!wait(group_name))
       {
         action_res.result = manipulation_msgs::PlaceObjectsResult::ReturnError;
-        ROS_ERROR("error executing %s/follow_joint_trajectory",group_name.c_str());
+        ROS_ERROR("Error executing %s/follow_joint_trajectory",group_name.c_str());
         as->setAborted(action_res,"error in trajectory execution");
         return;
       }

@@ -59,6 +59,7 @@ int main(int argc, char **argv)
   place_goal.object_name = object_name;
   place_goal.slots_group_names.push_back("group_A");
 
+  place_goal.to_loc_ctrl_id = "trj_tracker";
   place_goal.tool_id = "fake_gripper";
   place_goal.property_exec_id = "open";
 

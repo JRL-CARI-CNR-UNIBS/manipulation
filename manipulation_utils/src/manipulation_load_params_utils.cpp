@@ -108,20 +108,6 @@ bool InboundPickFromParam::readBoxesFromParam()
     std::string frame_name = rosparam_utilities::toString(box["frame"]);
     ROS_INFO("Found box frame name: %s",frame_name.c_str());
 
-    if( !box.hasMember("height") )
-    {
-      ROS_WARN("The element #%zu has not the field 'height'", i);
-      continue;
-    }
-    double height = rosparam_utilities::toDouble(box["height"]);
-    ROS_DEBUG("Box picking height %f",height);
-
-    if( !box.hasMember("quaternion") )
-    {
-      ROS_WARN("The element #%zu has not the field 'quaternion'", i);
-      continue;
-    }
-
     std::string what;
     std::vector<double> position;
     if( !rosparam_utilities::getParam(box,"position",position,what) )
@@ -150,6 +136,19 @@ bool InboundPickFromParam::readBoxesFromParam()
     T_frame_box.translation()(1) = position.at(1);
     T_frame_box.translation()(2) = position.at(2);
 
+    std::vector<double> approach_distance_d;
+    if( !rosparam_utilities::getParam(box,"approach_distance",approach_distance_d,what) )
+    {
+      ROS_WARN("The box %s has not the field 'approach_distance'",box_name.c_str());
+      return false;
+    }
+    assert(approach_distance_d.size() == 3);
+    Eigen::Vector3d approach_distance_in_frame;
+    approach_distance_in_frame(0) = approach_distance_d.at(0);
+    approach_distance_in_frame(1) = approach_distance_d.at(1);
+    approach_distance_in_frame(2) = approach_distance_d.at(2);
+
+
     tf::TransformListener listener;
     tf::StampedTransform transform;
     ros::Time t0 = ros::Time::now();
@@ -175,12 +174,20 @@ bool InboundPickFromParam::readBoxesFromParam()
 
     Eigen::Affine3d T_w_box = T_w_frame * T_frame_box;
 
+    Eigen::Vector3d approach_distance_in_world = T_w_frame.linear() * approach_distance_in_frame;
+
+    Eigen::Affine3d T_w_approach = T_w_box;
+    T_w_approach.translation() += approach_distance_in_world;
+
+    Eigen::Affine3d T_box_approach = T_w_box.inverse() * T_w_approach;  
+
     manipulation_msgs::Box box_;
     box_.name = box_name;
-    box_.height = height;
     box_.location.name = box_.name;
     box_.location.frame = "world";
     tf::poseEigenToMsg(T_w_box,box_.location.pose);
+    tf::poseEigenToMsg(T_box_approach,box_.location.approach_relative_pose);
+    tf::poseEigenToMsg(T_box_approach,box_.location.leave_relative_pose);
     boxes.push_back(box_);
   }
 
@@ -196,7 +203,6 @@ bool InboundPickFromParam::readBoxesFromParam()
   }
   else
     ROS_WARN("Can't add any box to the location manager.");
-  
   
   return true;
 }

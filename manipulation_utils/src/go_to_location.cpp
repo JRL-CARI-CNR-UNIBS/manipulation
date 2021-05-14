@@ -32,10 +32,11 @@ namespace manipulation
 {
 
 GoToLocation::GoToLocation( const ros::NodeHandle& nh, 
-                            const ros::NodeHandle& pnh):
+                            const ros::NodeHandle& pnh,
+                            const std::string& skill_name):
                             m_nh(nh),
                             m_pnh(pnh),
-                            SkillBase(nh,pnh,"go_to")
+                            SkillBase(nh,pnh,skill_name)
 {
   // nothing to do here    
 }
@@ -148,12 +149,21 @@ void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,
     disp_trj.trajectory_start = plan.start_state_;
 
     ROS_INFO("Execute move to location. Group %s, location name %s",group_name.c_str(), plan_to_location_name.c_str());
-    execute(group_name,plan);
+    if(!execute(group_name,plan))
+    {
+      action_res.result = manipulation_msgs::GoToResult::TrajectoryError;
+      ROS_ERROR("Error while executing trajectory");
+      as->setAborted(action_res,"error while executing trajectory.");
+      return;
+    }
+    
+    fjtClientWaitForResult(group_name);
+    
     if (!wait(group_name))
     {
       action_res.result = manipulation_msgs::GoToResult::TrajectoryError;
       ROS_ERROR("error executing %s/follow_joint_trajectory",group_name.c_str());
-      as->setAborted(action_res,"error in trajectory execution");
+      as->setAborted(action_res,"error in trajectory execution.");
       return;
     }
 
@@ -164,7 +174,7 @@ void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,
       {
         action_res.result = manipulation_msgs::GoToResult::ToolError;
         ROS_ERROR("Error on service %s result during job execution", m_job_srv.getService().c_str() );
-        as->setAborted(action_res,"error on service JobExecution result");
+        as->setAborted(action_res,"error on service JobExecution result.");
         return;
       }
     }

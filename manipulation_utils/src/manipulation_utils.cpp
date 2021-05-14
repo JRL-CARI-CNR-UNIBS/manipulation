@@ -153,7 +153,6 @@ Box::Box( const ros::NodeHandle& nh,
   }
  
   m_name = box.name;
-  m_height = box.height;
   m_location_name = box.location.name;
     
   for (const manipulation_msgs::Object& object: box.objects)

@@ -47,6 +47,7 @@ int main(int argc, char **argv)
   pick_goal.object_types.push_back("squadra_piccola");
   //pick_goal.object_types.push_back("squadra_grande");
 
+  pick_goal.to_loc_ctrl_id = "trj_tracker";
   pick_goal.tool_id = "fake_gripper";
   pick_goal.property_exec_id = "close";
 

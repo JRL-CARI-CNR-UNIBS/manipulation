@@ -130,7 +130,6 @@ namespace manipulation
   protected:
     bool m_int_state;
     std::string m_name;
-    double m_height;
     std::string m_location_name;  // to keep trace about the location inserted in the LocationManager
     
     ros::NodeHandle m_nh;
@@ -186,10 +185,6 @@ namespace manipulation
     /* get all the objects of this type
     */
     std::vector<ObjectPtr> getObjectsByType(const std::string& object_type);
-
-    /* get box height
-    */
-    const double& getHeight(){return m_height;}
 
     /* get the location name
     */
