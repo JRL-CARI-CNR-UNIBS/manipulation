@@ -1,0 +1,6 @@
+string location_name
+string group_name
+---
+Configuration[] ik_solutions
+Configuration[] approach_ik_solutions
+Configuration[] leave_ik_solutions
