@@ -393,8 +393,8 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
       }
 
       rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/"+group.first),sols);
-      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/approach/"+group.first),sols);
-      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/leave/"+group.first),sols);
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/approach/"+group.first),approach_sols);
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/leave/"+group.first),leave_sols);
     }
     else
     {
@@ -404,12 +404,12 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
         ROS_ERROR("Parameter %s/%s/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
         return false;
       }
-      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/approach/"+group.first,sols,what))
+      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/approach/"+group.first,approach_sols,what))
       {
         ROS_ERROR("Parameter %s/%s/approach/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
         return false;
       }
-      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/leave/"+group.first,sols,what))
+      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/leave/"+group.first,leave_sols,what))
       {
         ROS_ERROR("Parameter %s/%s/leave/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
         return false;
@@ -417,8 +417,8 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
     }
 
     location_ptr->addLocationIk(group.first,sols);
-    location_ptr->addApproachIk(group.first,sols);
-    location_ptr->addLeaveIk(group.first,sols);
+    location_ptr->addApproachIk(group.first,approach_sols);
+    location_ptr->addLeaveIk(group.first,leave_sols);
     
     get_ik_group = true;
   }
