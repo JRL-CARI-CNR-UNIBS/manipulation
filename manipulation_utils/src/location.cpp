@@ -312,9 +312,9 @@ bool LocationManager::listLocationsCb(manipulation_msgs::ListOfLocations::Reques
 bool LocationManager::getLocationIkCb(manipulation_msgs::GetLocationIkSolution::Request &req,
                                       manipulation_msgs::GetLocationIkSolution::Response &res)
 {
-  if ( m_locations.find(req.location_name) != m_locations.end() )
+  if ( m_locations.find(req.location_name) == m_locations.end() )
   {
-    ROS_WARN("Location %s is already present",req.location_name.c_str());
+    ROS_WARN("Location %s is not present",req.location_name.c_str());
     return false;
   }
   LocationPtr loc=m_locations.at(req.location_name);
