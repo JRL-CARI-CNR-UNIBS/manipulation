@@ -364,15 +364,37 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
   {
     std::vector<Eigen::VectorXd> sols;
     std::vector<Eigen::VectorXd> seed;
+    std::vector<Eigen::VectorXd> location_sols;
+    std::vector<Eigen::VectorXd> leave_sols;
+    std::vector<Eigen::VectorXd> approach_sols;
+
 
     if (!m_nh.hasParam(location_ptr->m_name+"/"+group.first))
     {
-      if (!ik(group.first,location_ptr->m_T_w_location,seed,sols,m_ik_sol_number))
+      if (!ik(group.first,location_ptr->m_T_w_location,seed,location_sols,m_ik_sol_number))
       {
         ROS_WARN("Location %s can't be reached by group %s",location_ptr->m_name.c_str(),group.first.c_str());
         continue;
       }
+
+      for (const Eigen::VectorXd& q: location_sols)
+      {
+        std::vector<Eigen::VectorXd> tmp_sols;
+        std::vector<Eigen::VectorXd> tmp_approach_sols;
+        std::vector<Eigen::VectorXd> tmp_leave_sols;
+        tmp_sols.push_back(q);
+        if (!ik(group.first,location_ptr->m_T_w_approach,tmp_sols,tmp_approach_sols,1))
+          continue;
+        if (!ik(group.first,location_ptr->m_T_w_leave,tmp_sols,tmp_leave_sols,1))
+          continue;
+        sols.push_back(tmp_sols.at(0));
+        approach_sols.push_back(tmp_approach_sols.at(0));
+        leave_sols.push_back(tmp_leave_sols.at(0));
+      }
+
       rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/"+group.first),sols);
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/approach/"+group.first),sols);
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/leave/"+group.first),sols);
     }
     else
     {
@@ -382,57 +404,20 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
         ROS_ERROR("Parameter %s/%s/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
         return false;
       }
-    }
-    location_ptr->addLocationIk(group.first,sols);
-
-    if (sols.size() != 0)
-      seed.push_back(sols.at(0));
-
-    if (!m_nh.hasParam(location_ptr->m_name+"/approach/"+group.first))
-    {
-      if (!ik(group.first,location_ptr->m_T_w_approach,seed,sols,m_ik_sol_number))
-      {
-        ROS_WARN("Approach to location %s can't be reached by group %s",location_ptr->m_name.c_str(),group.first.c_str());
-        continue;
-      }
-      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/approach/"+group.first),sols);
-    }
-    else
-    {
-      std::string what;
       if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/approach/"+group.first,sols,what))
       {
         ROS_ERROR("Parameter %s/%s/approach/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
         return false;
       }
-    }
-    location_ptr->addApproachIk(group.first,sols);
-
-
-    if (sols.size() != 0)
-    {
-      seed.clear();
-      seed.push_back(sols.at(0));
-    }
-
-    if (!m_nh.hasParam(location_ptr->m_name+"/leave/"+group.first))
-    {
-      if (!ik(group.first,location_ptr->m_T_w_leave,seed,sols,m_ik_sol_number))
-      {
-        ROS_WARN("Leave from location %s can't be reached by group %s",location_ptr->m_name.c_str(),group.first.c_str());
-        continue;
-      }
-      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/leave/"+group.first),sols);
-    }
-    else
-    {
-      std::string what;
       if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/leave/"+group.first,sols,what))
       {
         ROS_ERROR("Parameter %s/%s/leave/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
         return false;
       }
     }
+
+    location_ptr->addLocationIk(group.first,sols);
+    location_ptr->addApproachIk(group.first,sols);
     location_ptr->addLeaveIk(group.first,sols);
     
     get_ik_group = true;
