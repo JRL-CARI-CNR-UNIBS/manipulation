@@ -84,16 +84,20 @@ void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,
   {
     ros::Time t_start = ros::Time::now();
 
-    if (m_locations.find(goal->location_name) == m_locations.end())
+    std::vector<std::string> location_names(goal->location_names.size());
+    for (size_t iloc=0;iloc<goal->location_names.size();iloc++)
     {
-      action_res.result = manipulation_msgs::GoToResult::TrajectoryError;
-      ROS_ERROR("Can't find the location '%s' in the location manager.", goal->location_name.c_str());
-      as->setAborted(action_res,"the location is not present in the location manager");
-      return;
+      if (m_locations.find(goal->location_names.at(iloc)) == m_locations.end())
+      {
+        action_res.result = manipulation_msgs::GoToResult::TrajectoryError;
+        ROS_ERROR("Can't find the location '%s' in the location manager.", goal->location_names.at(iloc).c_str());
+        as->setAborted(action_res,"the location is not present in the location manager");
+        return;
+      }
+      location_names.at(iloc)=goal->location_names.at(iloc);
     }
 
-    std::vector<std::string> location_names(1, goal->location_name);
-    
+
     // Set the controller for the movement 
     if(!goal->to_loc_ctrl_id.empty())
     {
