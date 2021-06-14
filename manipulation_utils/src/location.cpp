@@ -222,8 +222,55 @@ bool LocationManager::init()
     rosdyn::ChainPtr chain = rosdyn::createChain(*robot_model_loader.getURDF(),world_frame,m_tool_names.at(group_name),gravity);
     chain->setInputJointsName(jmg->getActiveJointModelNames());
     m_chains.insert(std::pair<std::string,rosdyn::ChainPtr>(group_name,chain));
-
     size_t n_joints = jmg->getActiveJointModelNames().size();
+
+    std::vector<double> lower_bound;
+    std::vector<double> upper_bound;
+
+    if (m_nh.getParam(group_name+"/lower_bound",lower_bound))
+    {
+      if (lower_bound.size()!=n_joints)
+      {
+        ROS_ERROR("%s/lower_bound has wrong dimensions",group_name.c_str());
+        return false;
+      }
+    }
+    else
+    {
+      lower_bound.resize(n_joints);
+      for (size_t itmp=0;itmp<n_joints;itmp++)
+      {
+        lower_bound.at(itmp)=chain->getQMin()(itmp);
+      }
+    }
+
+    if (m_nh.getParam(group_name+"/upper_bound",upper_bound))
+    {
+      if (upper_bound.size()!=n_joints)
+      {
+        ROS_ERROR("%s/upper_bound has wrong dimensions",group_name.c_str());
+        return false;
+      }
+    }
+    else
+    {
+      upper_bound.resize(n_joints);
+      for (size_t itmp=0;itmp<n_joints;itmp++)
+      {
+        upper_bound.at(itmp)=chain->getQMax()(itmp);
+      }
+    }
+    for (size_t itmp=0;itmp<n_joints;itmp++)
+    {
+      upper_bound.at(itmp)=std::min(upper_bound.at(itmp),chain->getQMax()(itmp));
+      lower_bound.at(itmp)=std::max(lower_bound.at(itmp),chain->getQMin()(itmp));
+      ROS_DEBUG("bounds of joint %zu: %f,%f",itmp,lower_bound.at(itmp),upper_bound.at(itmp));
+    }
+
+    m_upper_bound.insert(std::pair<std::string,std::vector<double>>(group_name,upper_bound));
+    m_lower_bound.insert(std::pair<std::string,std::vector<double>>(group_name,lower_bound));
+
+
     std::vector<double> tmp;
     if (m_nh.getParam(group_name+"/preferred_configuration",tmp))
     {
@@ -694,6 +741,9 @@ bool LocationManager::ik( const std::string& group_name,
   unsigned int n_seed = seed.size();
   bool found = false;
 
+  std::vector<double> lower_bound=m_lower_bound.at(group_name);
+  std::vector<double> upper_bound=m_upper_bound.at(group_name);
+
   int stall=0;
   for (unsigned int iter=0;iter<N_MAX_ITER;iter++)
   {
@@ -723,10 +773,29 @@ bool LocationManager::ik( const std::string& group_name,
     state.copyJointGroupPositions(group_name,start);
     if (m_chains.at(group_name)->computeLocalIk(js,T_w_a,start,1e-4,ros::Duration(0.002)))
     {
+      bool out_of_bound=false;
+      for (unsigned int iax=0;iax<lower_bound.size();iax++)
+      {
+
+        if ( (js(iax)<lower_bound.at(iax)) || (js(iax)>upper_bound.at(iax)))
+        {
+          ROS_FATAL("js=%f, bounds of joint %u: %f,%f",js(iax),iax,lower_bound.at(iax),upper_bound.at(iax));
+          out_of_bound=true;
+          continue;
+        }
+        else
+          ROS_WARN("js=%f, bounds of joint %u: %f,%f",js(iax),iax,lower_bound.at(iax),upper_bound.at(iax));
+
+      }
+      if (out_of_bound)
+        continue;
+
       state.setJointGroupPositions(group_name,js);
 
       if (!state.satisfiesBounds())
         continue;
+
+
       
       state.updateCollisionBodyTransforms();
       if (!planning_scene->isStateValid(state,group_name))

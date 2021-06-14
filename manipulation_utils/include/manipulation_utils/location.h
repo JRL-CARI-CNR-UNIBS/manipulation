@@ -154,6 +154,10 @@ protected:
   int m_ik_sol_number;
   int m_max_stall_iter;
 
+  std::map<std::string,std::vector<double>> m_lower_bound;
+  std::map<std::string,std::vector<double>> m_upper_bound;
+
+
   std::mutex m_scene_mtx; 
   std::map<std::string,LocationPtr> m_locations;
 
