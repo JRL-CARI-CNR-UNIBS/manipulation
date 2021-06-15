@@ -55,7 +55,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <manipulation_msgs/Location.h>
 #include <manipulation_msgs/AddLocations.h>
 #include <manipulation_msgs/RemoveLocations.h>
-
+#include <manipulation_msgs/ListOfLocations.h>
+#include <manipulation_msgs/GetLocationIkSolution.h>
 #include <pluginlib/class_loader.h>
 
 #include <rosdyn_core/primitives.h>
@@ -130,6 +131,12 @@ public:
   bool removeLocationsCb( manipulation_msgs::RemoveLocations::Request& req,
                           manipulation_msgs::RemoveLocations::Response& res);
 
+  bool listLocationsCb(manipulation_msgs::ListOfLocations::Request& req,
+                       manipulation_msgs::ListOfLocations::Response& res);
+
+  bool getLocationIkCb(manipulation_msgs::GetLocationIkSolution::Request& req,
+                       manipulation_msgs::GetLocationIkSolution::Response& res);
+
   moveit::planning_interface::MoveGroupInterface::Plan planTo(const std::string& group_name,
                                                               const std::vector<std::string>& location_names,
                                                               const Location::Destination& destination,
@@ -174,6 +181,8 @@ protected:
   ros::Publisher m_display_publisher;
   ros::ServiceServer m_add_locations_srv;
   ros::ServiceServer m_remove_locations_srv;
+  ros::ServiceServer m_list_locations_srv;
+  ros::ServiceServer m_get_location_ik_srv;
 
   bool addLocationFromMsg(const manipulation_msgs::Location& location);
 

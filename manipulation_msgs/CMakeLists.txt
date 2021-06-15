@@ -27,7 +27,8 @@ add_message_files(
   Location.msg
   Object.msg
   Slot.msg
-  SlotsGroup.msg	  
+  SlotsGroup.msg
+  Configuration.msg
   )
 
 add_service_files(
@@ -39,6 +40,8 @@ add_service_files(
   AddSlotsGroup.srv
   JobExecution.srv
   ListOfObjects.srv
+  ListOfLocations.srv
+  GetLocationIkSolution.srv
   RemoveBoxes.srv
   RemoveLocations.srv
   RemoveObjects.srv

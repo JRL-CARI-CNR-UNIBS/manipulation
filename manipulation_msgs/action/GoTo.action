@@ -1,5 +1,5 @@
-#Name of the location where the manipualtor has to move  
-string location_name
+#Name of the location where the manipualtor has to move
+string[] location_names
 #Controller type used during the execution of the movement
 string to_loc_ctrl_id
 #Tool referance to execute the skill

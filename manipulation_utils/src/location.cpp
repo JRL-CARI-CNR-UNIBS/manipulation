@@ -37,10 +37,10 @@ Location::Location( const std::string& name,
                     const Eigen::Affine3d& T_w_location,
                     const Eigen::Affine3d& T_w_approach,
                     const Eigen::Affine3d& T_w_leave):
-                    m_name(name),
-                    m_T_w_location(T_w_location),
-                    m_T_w_approach(T_w_approach),
-                    m_T_w_leave(T_w_leave)
+  m_name(name),
+  m_T_w_location(T_w_location),
+  m_T_w_approach(T_w_approach),
+  m_T_w_leave(T_w_leave)
 {
 
 }
@@ -96,8 +96,8 @@ void Location::addLeaveIk(const std::string &group_name, const std::vector<Eigen
 
 // LocationManager class
 LocationManager::LocationManager( const ros::NodeHandle& nh):
-                                  m_nh(nh),
-                                  world_frame("world")
+  m_nh(nh),
+  world_frame("world")
 {
   // nothing to do
 }
@@ -109,7 +109,7 @@ bool LocationManager::init()
   robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
   m_kinematic_model = robot_model_loader.getModel();
 
-  m_display_publisher = m_nh.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true); // verificare se il nome del messaggio può essere sposta in file di configurazione 
+  m_display_publisher = m_nh.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true); // verificare se il nome del messaggio può essere sposta in file di configurazione
 
   if (!m_nh.getParam("request_adapters", m_request_adapters))
   {
@@ -201,7 +201,7 @@ bool LocationManager::init()
           ROS_INFO("Disable collision detection for group %s and link %s",group_name.c_str(),link.c_str());
           acm.setEntry(link,true);
         }
-      } 
+      }
     }
     else
     {
@@ -214,7 +214,7 @@ bool LocationManager::init()
     ///////// TESTING
     // Set the collision detector
     m_collision_loader.setupScene(m_nh,m_planning_scene.at(group_name));
-    //m_planning_scene.at(group_name)->setActiveCollisionDetector(collision_detection::CollisionDetectorAllocatorBullet::create());  
+    //m_planning_scene.at(group_name)->setActiveCollisionDetector(collision_detection::CollisionDetectorAllocatorBullet::create());
     ///////// TESTING
 
     Eigen::Vector3d gravity;
@@ -266,9 +266,10 @@ bool LocationManager::init()
 
   }
 
-  m_add_locations_srv = m_nh.advertiseService("add_locations",&LocationManager::addLocationsCb,this);
-  m_remove_locations_srv = m_nh.advertiseService("remove_locations",&LocationManager::removeLocationsCb,this);
-
+  m_add_locations_srv    = m_nh.advertiseService("add_locations",    &LocationManager::addLocationsCb,    this);
+  m_remove_locations_srv = m_nh.advertiseService("remove_locations", &LocationManager::removeLocationsCb, this);
+  m_list_locations_srv   = m_nh.advertiseService("list_locations",   &LocationManager::listLocationsCb,   this);
+  m_get_location_ik_srv  = m_nh.advertiseService("get_location_ik",  &LocationManager::getLocationIkCb,   this);
   ROS_INFO("Location Manager initialized.");
 
   return true;
@@ -282,7 +283,7 @@ bool LocationManager::addLocationsCb( manipulation_msgs::AddLocations::Request& 
     res.results = manipulation_msgs::AddLocations::Response::Error;
     return false;
   }
-    
+
   res.results = manipulation_msgs::AddLocations::Response::Success;
   return true;
 }
@@ -297,6 +298,53 @@ bool LocationManager::removeLocationsCb(manipulation_msgs::RemoveLocations::Requ
   }
 
   res.results = manipulation_msgs::RemoveLocations::Response::Success;
+  return true;
+}
+
+bool LocationManager::listLocationsCb(manipulation_msgs::ListOfLocations::Request &req,
+                                      manipulation_msgs::ListOfLocations::Response &res)
+{
+  for (const std::pair<std::string,LocationPtr>& p: m_locations)
+    res.locations.push_back(p.first);
+  return true;
+}
+
+bool LocationManager::getLocationIkCb(manipulation_msgs::GetLocationIkSolution::Request &req,
+                                      manipulation_msgs::GetLocationIkSolution::Response &res)
+{
+  if ( m_locations.find(req.location_name) == m_locations.end() )
+  {
+    ROS_WARN("Location %s is not present",req.location_name.c_str());
+    return false;
+  }
+  LocationPtr loc=m_locations.at(req.location_name);
+  std::vector<Eigen::VectorXd> ik_sols=loc->getApproachIk(req.group_name);
+  for (const Eigen::VectorXd& q: ik_sols)
+  {
+    manipulation_msgs::Configuration configuration;
+    for (int iq=0;iq<q.size();iq++)
+      configuration.configuration.push_back(q(iq));
+    res.approach_ik_solutions.push_back(configuration);
+  }
+
+  ik_sols=loc->getLocationIk(req.group_name);
+  for (const Eigen::VectorXd& q: ik_sols)
+  {
+    manipulation_msgs::Configuration configuration;
+    for (int iq=0;iq<q.size();iq++)
+      configuration.configuration.push_back(q(iq));
+    res.ik_solutions.push_back(configuration);
+  }
+
+  ik_sols=loc->getLeaveIk(req.group_name);
+  for (const Eigen::VectorXd& q: ik_sols)
+  {
+    manipulation_msgs::Configuration configuration;
+    for (int iq=0;iq<q.size();iq++)
+      configuration.configuration.push_back(q(iq));
+    res.leave_ik_solutions.push_back(configuration);
+  }
+
   return true;
 }
 
@@ -366,9 +414,9 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
       seed.clear();
       seed.push_back(sols.at(0));
     }
-      
+
     if (!m_nh.hasParam(location_ptr->m_name+"/leave/"+group.first))
-    {  
+    {
       if (!ik(group.first,location_ptr->m_T_w_leave,seed,sols,m_ik_sol_number))
       {
         ROS_WARN("Leave from location %s can't be reached by group %s",location_ptr->m_name.c_str(),group.first.c_str());
@@ -409,7 +457,7 @@ bool LocationManager::addLocationsFromMsg(const std::vector<manipulation_msgs::L
     if(!addLocationFromMsg(location))
     {
       ROS_WARN("Can't add the location %s",location.name.c_str());
-      loc_added_ok = false;  
+      loc_added_ok = false;
     }
   }
   return loc_added_ok;
@@ -436,11 +484,11 @@ bool LocationManager::removeLocation(const std::string& location_name)
 bool LocationManager::removeLocations(const std::vector<std::string>& location_names)
 {
   for (const std::string& location_name: location_names)
-  { 
+  {
     if(!removeLocation(location_name))
     {
       ROS_WARN("Can't remove the location %s",location_name.c_str());
-      return false;  
+      return false;
     }
   }
   
@@ -490,10 +538,10 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
 
 
     std::vector<Eigen::VectorXd> sols;
-    for(const std::string& location_name: location_names) 
+    for(const std::string& location_name: location_names)
     {
       ROS_INFO("Planning to location: %s", location_name.c_str());
-      std::vector<Eigen::VectorXd> sols_single_location; 
+      std::vector<Eigen::VectorXd> sols_single_location;
       if(!getIkSolForLocation(location_name,destination,group_name,sols_single_location))
       {
         result = res.error_code_;
@@ -564,13 +612,13 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
     result = res.error_code_;
 
     std::vector<double> min_dist;
-    for(const std::string& location_name: location_names) 
-      min_dist.push_back(computeDistanceBetweenLocations(location_name, group_name, destination, final_configuration));    
+    for(const std::string& location_name: location_names)
+      min_dist.push_back(computeDistanceBetweenLocations(location_name, group_name, destination, final_configuration));
     
     plan_to_location_name = location_names.at(std::min_element(min_dist.begin(),min_dist.end()) - min_dist.begin());
     ROS_INFO("Planning completed. Selected location: %s", plan_to_location_name.c_str());
 
-    Eigen::Affine3d loc_ = m_locations.at(plan_to_location_name)->getLocation();  
+    Eigen::Affine3d loc_ = m_locations.at(plan_to_location_name)->getLocation();
     
     return plan;
   }
@@ -588,7 +636,7 @@ bool LocationManager::getIkSolForLocation(const std::string& location_name,
                                           std::vector<Eigen::VectorXd>& jconf_single_location)
 {
   jconf_single_location.clear();
-  if (m_locations.find(location_name) != m_locations.end())  
+  if (m_locations.find(location_name) != m_locations.end())
   {
     switch (destination)
     {
@@ -617,11 +665,11 @@ double LocationManager::computeDistanceBetweenLocations(const std::string& locat
                                                         const Location::Destination& destination,
                                                         const Eigen::VectorXd& jconf)
 {
-  std::vector<Eigen::VectorXd> jconfs_location_name; 
+  std::vector<Eigen::VectorXd> jconfs_location_name;
   if (getIkSolForLocation(location_name, destination, group_name, jconfs_location_name))
   {
     std::vector<double> jconf_dist;
-    for (const Eigen::VectorXd& jconf_single: jconfs_location_name )  
+    for (const Eigen::VectorXd& jconf_single: jconfs_location_name )
     {
       if (jconf_single.size() == jconf.size())
         jconf_dist.push_back((jconf_single - jconf).lpNorm<1>());
@@ -629,9 +677,9 @@ double LocationManager::computeDistanceBetweenLocations(const std::string& locat
       {
         ROS_ERROR("Can't compute the distance between joint configuration.");
         return std::numeric_limits<double>::quiet_NaN();
-      }    
+      }
     }
-    return *std::min_element(jconf_dist.begin(),jconf_dist.end()); 
+    return *std::min_element(jconf_dist.begin(),jconf_dist.end());
   }
   else
   {
@@ -641,9 +689,9 @@ double LocationManager::computeDistanceBetweenLocations(const std::string& locat
 }
 
 bool LocationManager::ik( const std::string& group_name,
-                          const Eigen::Affine3d& T_w_a, 
+                          const Eigen::Affine3d& T_w_a,
                           const std::vector<Eigen::VectorXd>& seed,
-                          std::vector<Eigen::VectorXd >& sols, 
+                          std::vector<Eigen::VectorXd >& sols,
                           unsigned int ntrial)
 {
   std::map<double,Eigen::VectorXd> solutions;
@@ -698,7 +746,7 @@ bool LocationManager::ik( const std::string& group_name,
       state.updateCollisionBodyTransforms();
       if (!planning_scene->isStateValid(state,group_name))
         continue;
-        
+
       double dist = (js-act_joints_conf).norm();
       
       if (solutions.size() == 0)
@@ -752,7 +800,7 @@ bool LocationManager::ik( const std::string& group_name,
   for (const std::pair<double,Eigen::VectorXd>& sol: solutions)
     sols.push_back(sol.second);
 
-  ROS_INFO("Found %lu solutions for the IK.", sols.size());
+  ROS_DEBUG("Found %lu solutions for the IK.", sols.size());
 
   return found;
 }
