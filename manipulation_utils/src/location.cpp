@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2020, Manuel Beschi 
+Copyright (c) 2020, Manuel Beschi
 CARI Joint Research Lab
 UNIBS-DIMI manuel.beschi@unibs.it
 CNR-STIIMA manuel.beschi@stiima.cnr.it
@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <manipulation_utils/location.h>
-namespace manipulation 
+namespace manipulation
 {
 
 // Location Class
@@ -48,7 +48,7 @@ Location::Location( const std::string& name,
 Location::Location(const manipulation_msgs::Location &msg)
 {
   tf::poseMsgToEigen(msg.pose,m_T_w_location);
-  
+
   Eigen::Affine3d T_location_approach;
   tf::poseMsgToEigen(msg.approach_relative_pose,T_location_approach);
   m_T_w_approach = m_T_w_location * T_location_approach;
@@ -66,7 +66,7 @@ bool Location::canBePickedBy(const std::string &group_name)
   return ( m_location_configurations.find(group_name) != m_location_configurations.end() );
 }
 
-void Location::addLocationIk( const std::string &group_name, 
+void Location::addLocationIk( const std::string &group_name,
                               const std::vector<Eigen::VectorXd> &solutions )
 {
   if ( m_location_configurations.find(group_name) == m_location_configurations.end() )
@@ -75,7 +75,7 @@ void Location::addLocationIk( const std::string &group_name,
     m_location_configurations.at(group_name) = solutions;
 }
 
-void Location::addApproachIk( const std::string &group_name, 
+void Location::addApproachIk( const std::string &group_name,
                               const std::vector<Eigen::VectorXd> &solutions )
 {
   if ( m_approach_location_configurations.find(group_name) == m_approach_location_configurations.end() )
@@ -181,11 +181,11 @@ bool LocationManager::init()
     moveit::core::JointModelGroup* jmg = m_kinematic_model->getJointModelGroup(group_name);
     m_joint_models.insert(std::pair<std::string,moveit::core::JointModelGroup*>(group_name,jmg));
 
-    
+
     ROS_INFO("Setting PlanningScene.");
     m_planning_scene.insert(std::pair<std::string,std::shared_ptr<planning_scene::PlanningScene>>(group_name,std::make_shared<planning_scene::PlanningScene>(m_kinematic_model)));
     collision_detection::AllowedCollisionMatrix acm = m_planning_scene.at(group_name)->getAllowedCollisionMatrixNonConst();
-    
+
     std::vector<std::string> allowed_collisions;
     bool use_disable_collisions;
     if (m_nh.getParam(group_name+"/use_disable_collisions",use_disable_collisions))
@@ -466,7 +466,7 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
     location_ptr->addLocationIk(group.first,sols);
     location_ptr->addApproachIk(group.first,approach_sols);
     location_ptr->addLeaveIk(group.first,leave_sols);
-    
+
     get_ik_group = true;
   }
 
@@ -477,7 +477,7 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
     ROS_WARN("The location %s was not added to the location manager", location_ptr->m_name.c_str());
     return false;
   }
-  
+
   return true;
 }
 
@@ -523,7 +523,7 @@ bool LocationManager::removeLocations(const std::vector<std::string>& location_n
       return false;
     }
   }
-  
+
   return true;
 }
 
@@ -542,7 +542,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
   {
     moveit::planning_interface::MoveGroupInterfacePtr group = m_groups.at(group_name);
     moveit::core::JointModelGroup* jmg = m_joint_models.at(group_name);
-    
+
     int max_ik_goal_number = m_max_ik_goal_number.at(group_name);
 
     if (!group->startStateMonitor(2))
@@ -560,7 +560,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
     planning_interface::MotionPlanResponse res;
     req.group_name = group_name;
     req.start_state = plan.start_state_;
-    req.allowed_planning_time = 5;
+    req.allowed_planning_time = 15;
 
     robot_state::RobotState goal_state(m_kinematic_model);
 
@@ -646,12 +646,12 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
     std::vector<double> min_dist;
     for(const std::string& location_name: location_names)
       min_dist.push_back(computeDistanceBetweenLocations(location_name, group_name, destination, final_configuration));
-    
+
     plan_to_location_name = location_names.at(std::min_element(min_dist.begin(),min_dist.end()) - min_dist.begin());
     ROS_INFO("Planning completed. Selected location: %s", plan_to_location_name.c_str());
 
     Eigen::Affine3d loc_ = m_locations.at(plan_to_location_name)->getLocation();
-    
+
     return plan;
   }
   catch(const std::exception& ex)
@@ -690,7 +690,7 @@ bool LocationManager::getIkSolForLocation(const std::string& location_name,
   }
 
   return true;
-}  
+}
 
 double LocationManager::computeDistanceBetweenLocations(const std::string& location_name,
                                                         const std::string& group_name,
@@ -730,14 +730,14 @@ bool LocationManager::ik( const std::string& group_name,
   moveit::planning_interface::MoveGroupInterfacePtr group = m_groups.at(group_name);
   moveit::core::JointModelGroup* jmg = m_joint_models.at(group_name);
   robot_state::RobotState state = *group->getCurrentState();
-  
+
   m_scene_mtx.lock();
   planning_scene::PlanningScenePtr planning_scene = planning_scene::PlanningScene::clone(m_planning_scene.at(group_name));
   m_scene_mtx.unlock();
 
   Eigen::VectorXd act_joints_conf;
   state.copyJointGroupPositions(group_name,act_joints_conf);
-  
+
   unsigned int n_seed = seed.size();
   bool found = false;
 
@@ -779,13 +779,9 @@ bool LocationManager::ik( const std::string& group_name,
 
         if ( (js(iax)<lower_bound.at(iax)) || (js(iax)>upper_bound.at(iax)))
         {
-          ROS_FATAL("js=%f, bounds of joint %u: %f,%f",js(iax),iax,lower_bound.at(iax),upper_bound.at(iax));
           out_of_bound=true;
           continue;
         }
-        else
-          ROS_WARN("js=%f, bounds of joint %u: %f,%f",js(iax),iax,lower_bound.at(iax),upper_bound.at(iax));
-
       }
       if (out_of_bound)
         continue;
@@ -796,13 +792,13 @@ bool LocationManager::ik( const std::string& group_name,
         continue;
 
 
-      
+
       state.updateCollisionBodyTransforms();
       if (!planning_scene->isStateValid(state,group_name))
         continue;
 
       double dist = (js-act_joints_conf).norm();
-      
+
       if (solutions.size() == 0)
       {
         stall=0;
@@ -847,7 +843,7 @@ bool LocationManager::ik( const std::string& group_name,
         }
       }
     }
-    
+
   }
 
   sols.clear();
@@ -868,7 +864,6 @@ void LocationManager::updatePlanningScene(const moveit_msgs::PlanningScene& scen
       ROS_ERROR("unable to update planning scene");
   }
   m_scene_mtx.unlock();
-}                    
+}
 
 }  // end namespace manipulation
-

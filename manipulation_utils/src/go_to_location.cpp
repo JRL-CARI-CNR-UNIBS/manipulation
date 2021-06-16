@@ -84,17 +84,27 @@ void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,
   {
     ros::Time t_start = ros::Time::now();
 
-    std::vector<std::string> location_names(goal->location_names.size());
+    std::vector<std::string> location_names;
     for (size_t iloc=0;iloc<goal->location_names.size();iloc++)
     {
       if (m_locations.find(goal->location_names.at(iloc)) == m_locations.end())
       {
-        action_res.result = manipulation_msgs::GoToResult::TrajectoryError;
-        ROS_ERROR("Can't find the location '%s' in the location manager.", goal->location_names.at(iloc).c_str());
-        as->setAborted(action_res,"the location is not present in the location manager");
-        return;
+        ROS_DEBUG("Can't find the location '%s' in the location manager.", goal->location_names.at(iloc).c_str());
       }
-      location_names.at(iloc)=goal->location_names.at(iloc);
+      else
+      {
+        location_names.push_back(goal->location_names.at(iloc));
+      }
+    }
+
+    if (location_names.size()==0)
+    {
+      action_res.result = manipulation_msgs::GoToResult::TrajectoryError;
+      ROS_ERROR("Can't find any locations  in the location manager.");
+      for (size_t iloc=0;iloc<goal->location_names.size();iloc++)
+        ROS_ERROR("try location: - %s",goal->location_names.at(iloc).c_str());
+      as->setAborted(action_res,"the location is not present in the location manager");
+      return;
     }
 
 
