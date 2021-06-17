@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2020, Manuel Beschi 
+Copyright (c) 2020, Manuel Beschi
 CARI Joint Research Lab
 UNIBS-DIMI manuel.beschi@unibs.it
 CNR-STIIMA manuel.beschi@stiima.cnr.it
@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <manipulation_utils/location.h>
-namespace manipulation 
+namespace manipulation
 {
 
 // Location Class
@@ -48,7 +48,7 @@ Location::Location( const std::string& name,
 Location::Location(const manipulation_msgs::Location &msg)
 {
   tf::poseMsgToEigen(msg.pose,m_T_w_location);
-  
+
   Eigen::Affine3d T_location_approach;
   tf::poseMsgToEigen(msg.approach_relative_pose,T_location_approach);
   m_T_w_approach = m_T_w_location * T_location_approach;
@@ -66,7 +66,7 @@ bool Location::canBePickedBy(const std::string &group_name)
   return ( m_location_configurations.find(group_name) != m_location_configurations.end() );
 }
 
-void Location::addLocationIk( const std::string &group_name, 
+void Location::addLocationIk( const std::string &group_name,
                               const std::vector<Eigen::VectorXd> &solutions )
 {
   if ( m_location_configurations.find(group_name) == m_location_configurations.end() )
@@ -75,7 +75,7 @@ void Location::addLocationIk( const std::string &group_name,
     m_location_configurations.at(group_name) = solutions;
 }
 
-void Location::addApproachIk( const std::string &group_name, 
+void Location::addApproachIk( const std::string &group_name,
                               const std::vector<Eigen::VectorXd> &solutions )
 {
   if ( m_approach_location_configurations.find(group_name) == m_approach_location_configurations.end() )
@@ -127,6 +127,12 @@ bool LocationManager::init()
   {
     ROS_WARN("parameter %s/max_stall_iter is not defined, used default value = 100", m_nh.getNamespace().c_str());
     m_max_stall_iter = 100;
+  }
+
+  if (!m_nh.getParam("planning_time", m_planning_time))
+  {
+    ROS_WARN("parameter %s/planning_time is not defined, used default value = 5", m_nh.getNamespace().c_str());
+    m_planning_time = 5;
   }
 
   if (!m_nh.getParam("groups",m_tool_names))
@@ -181,11 +187,11 @@ bool LocationManager::init()
     moveit::core::JointModelGroup* jmg = m_kinematic_model->getJointModelGroup(group_name);
     m_joint_models.insert(std::pair<std::string,moveit::core::JointModelGroup*>(group_name,jmg));
 
-    
+
     ROS_INFO("Setting PlanningScene.");
     m_planning_scene.insert(std::pair<std::string,std::shared_ptr<planning_scene::PlanningScene>>(group_name,std::make_shared<planning_scene::PlanningScene>(m_kinematic_model)));
     collision_detection::AllowedCollisionMatrix acm = m_planning_scene.at(group_name)->getAllowedCollisionMatrixNonConst();
-    
+
     std::vector<std::string> allowed_collisions;
     bool use_disable_collisions;
     if (m_nh.getParam(group_name+"/use_disable_collisions",use_disable_collisions))
@@ -222,8 +228,55 @@ bool LocationManager::init()
     rosdyn::ChainPtr chain = rosdyn::createChain(*robot_model_loader.getURDF(),world_frame,m_tool_names.at(group_name),gravity);
     chain->setInputJointsName(jmg->getActiveJointModelNames());
     m_chains.insert(std::pair<std::string,rosdyn::ChainPtr>(group_name,chain));
-
     size_t n_joints = jmg->getActiveJointModelNames().size();
+
+    std::vector<double> lower_bound;
+    std::vector<double> upper_bound;
+
+    if (m_nh.getParam(group_name+"/lower_bound",lower_bound))
+    {
+      if (lower_bound.size()!=n_joints)
+      {
+        ROS_ERROR("%s/lower_bound has wrong dimensions",group_name.c_str());
+        return false;
+      }
+    }
+    else
+    {
+      lower_bound.resize(n_joints);
+      for (size_t itmp=0;itmp<n_joints;itmp++)
+      {
+        lower_bound.at(itmp)=chain->getQMin()(itmp);
+      }
+    }
+
+    if (m_nh.getParam(group_name+"/upper_bound",upper_bound))
+    {
+      if (upper_bound.size()!=n_joints)
+      {
+        ROS_ERROR("%s/upper_bound has wrong dimensions",group_name.c_str());
+        return false;
+      }
+    }
+    else
+    {
+      upper_bound.resize(n_joints);
+      for (size_t itmp=0;itmp<n_joints;itmp++)
+      {
+        upper_bound.at(itmp)=chain->getQMax()(itmp);
+      }
+    }
+    for (size_t itmp=0;itmp<n_joints;itmp++)
+    {
+      upper_bound.at(itmp)=std::min(upper_bound.at(itmp),chain->getQMax()(itmp));
+      lower_bound.at(itmp)=std::max(lower_bound.at(itmp),chain->getQMin()(itmp));
+      ROS_DEBUG("bounds of joint %zu: %f,%f",itmp,lower_bound.at(itmp),upper_bound.at(itmp));
+    }
+
+    m_upper_bound.insert(std::pair<std::string,std::vector<double>>(group_name,upper_bound));
+    m_lower_bound.insert(std::pair<std::string,std::vector<double>>(group_name,lower_bound));
+
+
     std::vector<double> tmp;
     if (m_nh.getParam(group_name+"/preferred_configuration",tmp))
     {
@@ -364,15 +417,37 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
   {
     std::vector<Eigen::VectorXd> sols;
     std::vector<Eigen::VectorXd> seed;
+    std::vector<Eigen::VectorXd> location_sols;
+    std::vector<Eigen::VectorXd> leave_sols;
+    std::vector<Eigen::VectorXd> approach_sols;
+
 
     if (!m_nh.hasParam(location_ptr->m_name+"/"+group.first))
     {
-      if (!ik(group.first,location_ptr->m_T_w_location,seed,sols,m_ik_sol_number))
+      if (!ik(group.first,location_ptr->m_T_w_location,seed,location_sols,m_ik_sol_number))
       {
         ROS_WARN("Location %s can't be reached by group %s",location_ptr->m_name.c_str(),group.first.c_str());
         continue;
       }
+
+      for (const Eigen::VectorXd& q: location_sols)
+      {
+        std::vector<Eigen::VectorXd> tmp_sols;
+        std::vector<Eigen::VectorXd> tmp_approach_sols;
+        std::vector<Eigen::VectorXd> tmp_leave_sols;
+        tmp_sols.push_back(q);
+        if (!ik(group.first,location_ptr->m_T_w_approach,tmp_sols,tmp_approach_sols,1))
+          continue;
+        if (!ik(group.first,location_ptr->m_T_w_leave,tmp_sols,tmp_leave_sols,1))
+          continue;
+        sols.push_back(tmp_sols.at(0));
+        approach_sols.push_back(tmp_approach_sols.at(0));
+        leave_sols.push_back(tmp_leave_sols.at(0));
+      }
+
       rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/"+group.first),sols);
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/approach/"+group.first),approach_sols);
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/leave/"+group.first),leave_sols);
     }
     else
     {
@@ -382,59 +457,22 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
         ROS_ERROR("Parameter %s/%s/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
         return false;
       }
-    }
-    location_ptr->addLocationIk(group.first,sols);
-
-    if (sols.size() != 0)
-      seed.push_back(sols.at(0));
-
-    if (!m_nh.hasParam(location_ptr->m_name+"/approach/"+group.first))
-    {
-      if (!ik(group.first,location_ptr->m_T_w_approach,seed,sols,m_ik_sol_number))
-      {
-        ROS_WARN("Approach to location %s can't be reached by group %s",location_ptr->m_name.c_str(),group.first.c_str());
-        continue;
-      }
-      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/approach/"+group.first),sols);
-    }
-    else
-    {
-      std::string what;
-      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/approach/"+group.first,sols,what))
+      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/approach/"+group.first,approach_sols,what))
       {
         ROS_ERROR("Parameter %s/%s/approach/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
         return false;
       }
-    }
-    location_ptr->addApproachIk(group.first,sols);
-
-
-    if (sols.size() != 0)
-    {
-      seed.clear();
-      seed.push_back(sols.at(0));
-    }
-
-    if (!m_nh.hasParam(location_ptr->m_name+"/leave/"+group.first))
-    {
-      if (!ik(group.first,location_ptr->m_T_w_leave,seed,sols,m_ik_sol_number))
-      {
-        ROS_WARN("Leave from location %s can't be reached by group %s",location_ptr->m_name.c_str(),group.first.c_str());
-        continue;
-      }
-      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/leave/"+group.first),sols);
-    }
-    else
-    {
-      std::string what;
-      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/leave/"+group.first,sols,what))
+      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/leave/"+group.first,leave_sols,what))
       {
         ROS_ERROR("Parameter %s/%s/leave/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
         return false;
       }
     }
-    location_ptr->addLeaveIk(group.first,sols);
-    
+
+    location_ptr->addLocationIk(group.first,sols);
+    location_ptr->addApproachIk(group.first,approach_sols);
+    location_ptr->addLeaveIk(group.first,leave_sols);
+
     get_ik_group = true;
   }
 
@@ -445,7 +483,7 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
     ROS_WARN("The location %s was not added to the location manager", location_ptr->m_name.c_str());
     return false;
   }
-  
+
   return true;
 }
 
@@ -491,7 +529,7 @@ bool LocationManager::removeLocations(const std::vector<std::string>& location_n
       return false;
     }
   }
-  
+
   return true;
 }
 
@@ -510,7 +548,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
   {
     moveit::planning_interface::MoveGroupInterfacePtr group = m_groups.at(group_name);
     moveit::core::JointModelGroup* jmg = m_joint_models.at(group_name);
-    
+
     int max_ik_goal_number = m_max_ik_goal_number.at(group_name);
 
     if (!group->startStateMonitor(2))
@@ -528,7 +566,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
     planning_interface::MotionPlanResponse res;
     req.group_name = group_name;
     req.start_state = plan.start_state_;
-    req.allowed_planning_time = 5;
+    req.allowed_planning_time = m_planning_time;
 
     robot_state::RobotState goal_state(m_kinematic_model);
 
@@ -614,12 +652,12 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
     std::vector<double> min_dist;
     for(const std::string& location_name: location_names)
       min_dist.push_back(computeDistanceBetweenLocations(location_name, group_name, destination, final_configuration));
-    
+
     plan_to_location_name = location_names.at(std::min_element(min_dist.begin(),min_dist.end()) - min_dist.begin());
     ROS_INFO("Planning completed. Selected location: %s", plan_to_location_name.c_str());
 
     Eigen::Affine3d loc_ = m_locations.at(plan_to_location_name)->getLocation();
-    
+
     return plan;
   }
   catch(const std::exception& ex)
@@ -658,7 +696,7 @@ bool LocationManager::getIkSolForLocation(const std::string& location_name,
   }
 
   return true;
-}  
+}
 
 double LocationManager::computeDistanceBetweenLocations(const std::string& location_name,
                                                         const std::string& group_name,
@@ -698,16 +736,19 @@ bool LocationManager::ik( const std::string& group_name,
   moveit::planning_interface::MoveGroupInterfacePtr group = m_groups.at(group_name);
   moveit::core::JointModelGroup* jmg = m_joint_models.at(group_name);
   robot_state::RobotState state = *group->getCurrentState();
-  
+
   m_scene_mtx.lock();
   planning_scene::PlanningScenePtr planning_scene = planning_scene::PlanningScene::clone(m_planning_scene.at(group_name));
   m_scene_mtx.unlock();
 
   Eigen::VectorXd act_joints_conf;
   state.copyJointGroupPositions(group_name,act_joints_conf);
-  
+
   unsigned int n_seed = seed.size();
   bool found = false;
+
+  std::vector<double> lower_bound=m_lower_bound.at(group_name);
+  std::vector<double> upper_bound=m_upper_bound.at(group_name);
 
   int stall=0;
   for (unsigned int iter=0;iter<N_MAX_ITER;iter++)
@@ -738,17 +779,32 @@ bool LocationManager::ik( const std::string& group_name,
     state.copyJointGroupPositions(group_name,start);
     if (m_chains.at(group_name)->computeLocalIk(js,T_w_a,start,1e-4,ros::Duration(0.002)))
     {
+      bool out_of_bound=false;
+      for (unsigned int iax=0;iax<lower_bound.size();iax++)
+      {
+
+        if ( (js(iax)<lower_bound.at(iax)) || (js(iax)>upper_bound.at(iax)))
+        {
+          out_of_bound=true;
+          continue;
+        }
+      }
+      if (out_of_bound)
+        continue;
+
       state.setJointGroupPositions(group_name,js);
 
       if (!state.satisfiesBounds())
         continue;
-      
+
+
+
       state.updateCollisionBodyTransforms();
       if (!planning_scene->isStateValid(state,group_name))
         continue;
 
       double dist = (js-act_joints_conf).norm();
-      
+
       if (solutions.size() == 0)
       {
         stall=0;
@@ -793,7 +849,7 @@ bool LocationManager::ik( const std::string& group_name,
         }
       }
     }
-    
+
   }
 
   sols.clear();
@@ -814,7 +870,6 @@ void LocationManager::updatePlanningScene(const moveit_msgs::PlanningScene& scen
       ROS_ERROR("unable to update planning scene");
   }
   m_scene_mtx.unlock();
-}                    
+}
 
 }  // end namespace manipulation
-

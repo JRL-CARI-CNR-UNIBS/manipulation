@@ -98,9 +98,14 @@ namespace manipulation
       return false;
     }
 
+    if (!m_fjt_clients.at(group_name)->waitForServer(ros::Duration(10)))
+    {
+      ROS_ERROR("Timeout FollowJointTrajectory client for group %s", group_name.c_str());
+      return false;
+    }
     m_fjt_clients.at(group_name)->sendGoal(goal, cb);
 
-    ROS_INFO("Execution done!");
+    ROS_INFO("Execution started!");
     return true;
   }
 
