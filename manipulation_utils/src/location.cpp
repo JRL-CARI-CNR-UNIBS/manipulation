@@ -129,6 +129,12 @@ bool LocationManager::init()
     m_max_stall_iter = 100;
   }
 
+  if (!m_nh.getParam("planning_time", m_planning_time))
+  {
+    ROS_WARN("parameter %s/planning_time is not defined, used default value = 5", m_nh.getNamespace().c_str());
+    m_planning_time = 5;
+  }
+
   if (!m_nh.getParam("groups",m_tool_names))
   {
     ROS_ERROR("parameter %s/groups is not defined",m_nh.getNamespace().c_str());
@@ -560,7 +566,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
     planning_interface::MotionPlanResponse res;
     req.group_name = group_name;
     req.start_state = plan.start_state_;
-    req.allowed_planning_time = 15;
+    req.allowed_planning_time = m_planning_time;
 
     robot_state::RobotState goal_state(m_kinematic_model);
 
