@@ -8,9 +8,9 @@ Examples nodes to create a:
 
 All the available action and services for *PlaceObject* *Skill Action* are described [here](../manipulation_utils/README.md).
 
-The *Sub Actions* of the GoToLocation *Skill Action* are described below:
+The *Skills* of the GoToLocation *Action* are described below:
 
-![GoToLocation *Sub Actions*.](../documentation/GoToLocation_sub_actions.png)
+![GoToLocation *Skills*.](../documentation/GoToLocation_sub_actions.png)
 
 ## Work in progress
 The manipulation framework package is continuosly evolving. If you find errors or if you have some suggestions or if you want to contribute [please let us know](https://github.com/JRL-CARI-CNR-UNIBS/manipulation/issues).

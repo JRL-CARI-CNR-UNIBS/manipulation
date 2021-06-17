@@ -14,22 +14,23 @@ The package is integrated with MoveIt! to automatically compute, simulate, and e
 ### Base definitions
 Before starting with the manipulation framework modules explanation it is necessary to provide the following definitions:
 
-- *Task*: is the final goal to be reached by the robotic system represented by a group of *Skill Actions*. The *Task* decomposition into single *Skill Action* is made by a task planner, or by an action planner if present, or by the user, that assign single *Skill Action* to the manipulation framework.
+- *Task*: is the final goal to be reached by the robotic system represented by a group of *Actions*. The *Task* decomposition into single *Actions* is made by a task planner, or by an action planner that assign a single *Action* to the manipulation framework.
 
-- *Skill Action*: is a single action that represent an elementary skill such as pick, place, screw, etc...
+- *Action*: it is a sequence of elementary movements made by
+the robotic system, examples of *Actions* are pick, place, screw, etc...
 
-- *Sub Action*: is the elementary movement executed by the robotic system, a group of *Sub Action* forms a *Skill Action*. For example, the pick *Skill Action* can be decomposed in: move to approach position, move to object position, actuate the grasping system, move to leave position, etc...
+- *Skill*: it is the elementary movement executed by the robotic system, a group of *Skills* forms an *Action*. For example, the pick *Action* can be decomposed in: move to the approach position, move to the object position, actuate the grasping system, move to the leave position, etc...
 
-The *Task* decomposition previously described is reported in the following picture:
+The *Task*, *Actions* and *Skills* hierarchy previously described is reported in the following picture:
 
-![*Task*, *Skill Action* and *Sub Action* hierarchy.](documentation/Task_SkillAction_SubAction.png)
+![*Task*, *Skill Action* and *Sub Action* hierarchy.](documentation/Tasks_Actions_Skills.png)
 
 
 ### Manipulation framework layers
 
-The manipulation framework is made by three main layers: the bottom layer (the green layer) has in charge the geometrical information management and the motion planning. The intermediate layer (the orange layer) manages the trajectories execution, the robot controllers and tools management. Finally, the top layer (the blue layer) deals with the *Skill Actions* decomposition and the *Sub Actions* execution.
+The manipulation framework is made by three main layers: the bottom layer (the green layer) has in charge the geometrical information management and the motion planning. The intermediate layer (the orange layer) manages the trajectories execution, the robot controllers and tools management. Finally, the top layer (the blue layer) deals with the *Actions* decomposition and the *Skills* execution.
 
-The task or the action planners can add and remove dynamically *Skill Actions*, multiple *Skill Actions* can contemporary exists.
+The task or the action planner can add and remove dynamically *Actions*, multiple *Actions* can contemporary exists.
 
 The scheduling of the actions is in charge to the action planner or to a task planner, in general, the framework can be used by the user even without the presence of planners on the above levels, by simply exploiting the motion planning and motion control functionalities.
 

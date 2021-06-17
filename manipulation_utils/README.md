@@ -1,47 +1,47 @@
 
 # manipulation_utils #
 
-The manipulation_utils package contains all the basic modules to build a Skill Action.
+The manipulation_utils package contains all the basic modules to build a manipulation *Action*.
 
 ## Description
 
-### Location Manager module
+### Locations Manager module
 
-All the object that need to be manipulated can be described by the data structure *Location* for a generic manipulation pose (position + orientation) (see [Location](../manipulation_msgs/msg)). The *Location Manager* is the module that has in charge the management of multiple *Locations*.
+All the object that need to be manipulated can be described by the data structure *Location* for a generic manipulation pose (position + orientation) (see [Location](../manipulation_msgs/msg)). The *Locations Manager* is the module that has in charge the management of multiple *Locations*.
 
-The *Location Manager* embeds a [*MoveIt!*](https://moveit.ros.org/) planning pipeline that enables the use the of multiple motion planners, a *MoveIt!* planning scene and a kinematics module able to compute the inverse kinematics of the overall robotic system for a given *Location*. Every time a new *Location* is added the inverse kinematics for a given move group (robotic arm + grasping system) is computed (with [*RosDyn*](https://github.com/CNR-STIIMA-IRAS/rosdyn) library instead of *MoveIt!* IK functions) and stored. The planning scene is evaluated only one time before planning a new trajectory, the online trajectory replanning is not supported, when a new trajectory planning is required the planning scene is updated and used to generate a collision-free trajectory avoiding collisions between the robotic system and all the entities in the planning environment. The motion planners can be loaded as ROS plugins, as the collision detectors.
+The *Locations Manager* embeds a [*MoveIt!*](https://moveit.ros.org/) planning pipeline that enables the use the of multiple motion planners, a *MoveIt!* planning scene and a kinematics module able to compute the inverse kinematics of the overall robotic system for a given *Location*. Every time a new *Location* is added the inverse kinematics for a given move group (robotic arm + grasping system) is computed (with [*RosDyn*](https://github.com/CNR-STIIMA-IRAS/rosdyn) library instead of *MoveIt!* IK functions) and stored. The planning scene is evaluated only one time before planning a new trajectory, the online trajectory replanning is not supported, when a new trajectory planning is required the planning scene is updated and used to generate a collision-free trajectory avoiding collisions between the robotic system and all the entities in the planning environment. The motion planners can be loaded as ROS plugins. In the same way collision detectors can be changed online.
 
-A *Location Manager* can handles multiple move groups. The planning scene is unique and shared between multiple *Location Manager*, objects can be dynamically added or removed depending on the real scene evolution, a perception system can be used to this scope.
+A *Locations Manager* can handle multiple move groups. The planning scene is unique and shared between multiple *Locations Manager*, objects can be dynamically added or removed depending on the real scene evolution, a perception system can be used to this scope.
 
-![*LocationManager* module description.](../documentation/LocationManager_scheme.png)
+![*LocationManager* module description.](../documentation/LocationsManager_scheme.png)
 
-### Skill Base module
+### Skills Manager module
 
-The *Skill Base* module allows to dynamically load/unload the robot controllers (through the [cnr_ros_control](https://github.com/CNR-STIIMA-IRAS/cnr_ros_control) package) depending on the required robot behavior during the execution of a specific *Sub Action*. The module allows to start and monitor the execution of the trajectories planned by the *Location Manager* for a specific move group and enables the control of the tool required by the *Skill Actions*. The trajectory execution is controlled through a control_msgs::FollowJointTrajectoryAction, the enabled controller need to provide a FollowJointTrajectoryAction server. 
+The *Skills Manager* module allows to dynamically load/unload the robot controllers (through the [cnr_ros_control](https://github.com/CNR-STIIMA-IRAS/cnr_ros_control) package) depending on the required robot behavior during the execution of a specific *Skill*. The module allows to start and monitor the execution of the trajectories planned by the *Locations Manager* for a specific move group and enables the control of the tool required by the *Actions*. The trajectory execution is controlled through a control_msgs::FollowJointTrajectoryAction, the enabled controller need to provide a FollowJointTrajectoryAction server.
 
-![*SkillBase* module description.](../documentation/SkillBase_scheme.png)
+![*SkillBase* module description.](../documentation/SkillsManager_scheme.png)
 
-### Skill Action module and manipulation framework pipeline
+### Action Manager module and manipulation framework pipeline
 
-The *Skill Action* ground on the top of the modules *Skill Base* and *Location Manager* defining the following pipeline:
+The *Action Manager* ground on the top of the modules *Skills Manager* and *Locations Manager* defining the following pipeline:
 
-![Manipulation framework pipeline.](../documentation/SkillAction_scheme.png)
+![Manipulation framework pipeline.](../documentation/ActionsManager_scheme.png)
 
-The *Skill Action* need to be defined by the user, as for the services to interact with the module. Once a new action is taken in charge, the *Skill Action* module supervises the action execution, checks if all the *Sub Actions* are properly completed and partially manages unexpected behaviors, if severe errors occurs an error message is returned to the action planner and the action execution is interrupted.
+The *Action* need to be defined by the user, as for the services to interact with the module. Once a new action is taken in charge, the *Action Manager* module supervises the action execution, checks if all the *Skills* are properly completed and partially manages unexpected behaviors, if severe errors occurs an error message is returned to the action planner and the action execution is interrupted.
 
 
 ## Services
 
-### Location Manager module
+### Locations Manager module
 
-The *LocationManager* module provide the following actions/services servers:
+The *Location Manager* module provide the following actions/services servers:
 
 | Services | Type | Description |
 |:--- | :----  | :------------------ |
-| `add_locations` | manipulation_msgs::AddLocations | To add a list of locations from the *Location Manager* |
-| `remove_locations` | manipulation_msgs::RemoveLocations | To remove a list of locations from the *Location Manager* |
+| `add_locations` | manipulation_msgs::AddLocations | To add a list of locations from the *Locations Manager* |
+| `remove_locations` | manipulation_msgs::RemoveLocations | To remove a list of locations from the *Locations Manager* |
 
-### Skill Action *PickObjects*
+### Action *PickObjects*
 
 The *PickObjects* module provide the following actions/services servers:
 
@@ -60,7 +60,7 @@ The *PickObjects* module provide the following actions/services servers:
 | `inbound/reset_box` | manipulation_msgs::ResetBoxes | To reset all the objects in a list of boxes |
 
 
-### Skill Action *PlaceObjects*
+### Action *PlaceObjects*
 
 The *PlaceObjects* module provide the following actions/services server:
 
@@ -78,7 +78,7 @@ The *PlaceObjects* module provide the following actions/services server:
 | `remove_obj_from_slot` | manipulation_msgs::RemoveObjectFromSlot | To remove a single object from a specific slot  |
 | `outbound/reset_slot` | manipulation_msgs::ResetSlots | To reset a list of slots from the objects contained |
 
-### Skill Action *GoToLocations*
+### Action *GoToLocations*
 
 The *GoToLocation* module provide the following actions/services servers:
 
