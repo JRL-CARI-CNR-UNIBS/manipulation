@@ -106,10 +106,13 @@ Object::Object( const ros::NodeHandle& nh,
   {
     m_grasp.push_back(std::make_shared<manipulation::Grasp>(m_nh,grasp));
     if(!m_grasp.back()->getIntState())
-       m_grasp.pop_back();
+    {
+      m_int_state = m_grasp.back()->getIntState();
+      m_grasp.pop_back();
+    }
+    else
+      ROS_INFO("Added the object: %s of the type: %s.", m_name.c_str(), m_type.c_str()); 
   }
-   
-  ROS_INFO("Added the object: %s of the type: %s.", m_name.c_str(), m_type.c_str()); 
 }
 
 Object::~Object()
@@ -185,7 +188,11 @@ bool Box::addObject(const manipulation_msgs::Object& object)
   m_objects.insert(std::pair<std::string,ObjectPtr>(object.name,std::make_shared<Object>(m_nh,object)));
 
   if (!m_objects.at(object.name)->getIntState())
+  {
     m_objects.erase(m_objects.find(object.name));
+    return false;
+  }
+    
 
   return true;
 }
@@ -200,7 +207,10 @@ bool Box::addObject(const manipulation::ObjectPtr& object)
 
   m_objects.insert(std::pair<std::string,ObjectPtr>(object->getName(),object));
   if (!m_objects.at(object->getName())->getIntState())
-      m_objects.erase(m_objects.find(object->getName()));
+  {
+    m_objects.erase(m_objects.find(object->getName()));
+    return false;
+  }
 
   return true;
 }

@@ -56,12 +56,15 @@ InboundPickFromParam::InboundPickFromParam( const ros::NodeHandle &nh):
   
   ROS_INFO("Waiting for: %s server", add_objs_client_.getService().c_str());
   add_objs_client_.waitForExistence();
+  ROS_INFO("Client %s connected to server", add_objs_client_.getService().c_str());
 
   ROS_INFO("Waiting for: %s server", add_box_client_.getService().c_str());
   add_box_client_.waitForExistence();
+  ROS_INFO("Client %s connected to server", add_box_client_.getService().c_str());
 
   ROS_INFO("Scene spawner is waiting %s", add_objs_to_scene_client_.getService().c_str());
   add_objs_to_scene_client_.waitForExistence();
+  ROS_INFO("Client %s connected to server", add_objs_to_scene_client_.getService().c_str());  
 
 }
 
@@ -199,7 +202,8 @@ bool InboundPickFromParam::readBoxesFromParam()
     if (!add_box_client_.call(add_boxes_srv))
       return false;
 
-    ROS_INFO("Added %lu boxes.", boxes.size());  
+    ROS_INFO("Added %d boxes and %d objects.",  add_boxes_srv.response.added_boxes,
+                                                add_boxes_srv.response.added_objects);  
   }
   else
     ROS_WARN("Can't add any box to the location manager.");
@@ -420,30 +424,39 @@ bool InboundPickFromParam::readObjectFromParam()
       obj.grasping_locations.push_back(grasp_obj);
     }
 
-    object_loader_msgs::Object col_obj;
-    tf::poseEigenToMsg(T_w_object,col_obj.pose.pose);
-    col_obj.pose.header.frame_id = "world";
-    col_obj.object_type = type;
-    srv.request.objects.push_back(col_obj);
-
-    if (!add_objs_to_scene_client_.call(srv))
-    {
-      ROS_ERROR("Something wrong when adding collision object");
-      return false;
-    }
-
-    if (!srv.response.success)
-    {
-      ROS_ERROR("Something wrong when adding collision object");
-      return false;
-    }
-
     add_objs_srv.at(box_name)->request.add_objects.push_back(obj);
-    srv.request.objects.clear();
+    if (!add_objs_client_.call(*add_objs_srv.at(box_name)))
+    {
+      ROS_ERROR("Something went wrong when calling the service ~/add_objects");
+      continue;
+    }
+
+    if (add_objs_srv.at(box_name)->response.results == manipulation_msgs::AddObjects::Response::Success)
+    {
+      object_loader_msgs::Object col_obj;
+      tf::poseEigenToMsg(T_w_object,col_obj.pose.pose);
+      col_obj.pose.header.frame_id = "world";
+      col_obj.object_type = type;
+      srv.request.objects.push_back(col_obj);
+
+      if (!add_objs_to_scene_client_.call(srv))
+      {
+        ROS_ERROR("Something went wrong when calling the service ~/add_object_to_scene");
+        continue;
+      }
+
+      if (!srv.response.success)
+      {
+        ROS_ERROR("Something wrong when adding collision object");
+        continue;
+      }
+
+      srv.request.objects.clear();
+    }
   }
 
-  for (const std::pair<std::string,std::shared_ptr<manipulation_msgs::AddObjects>>& p: add_objs_srv)
-    add_objs_client_.call(*p.second);
+  //for (const std::pair<std::string,std::shared_ptr<manipulation_msgs::AddObjects>>& p: add_objs_srv)
+  //  add_objs_client_.call(*p.second);
 
   return true;
 }
@@ -457,9 +470,11 @@ OutboundPlaceFromParam::OutboundPlaceFromParam( const ros::NodeHandle &nh):
 
   ROS_INFO("Waiting for: %s server", add_slots_group_client_.getService().c_str());
   add_slots_group_client_.waitForExistence();
-
+  ROS_INFO("Client %s connected to server", add_slots_group_client_.getService().c_str());
+  
   ROS_INFO("Waiting for: %s server", add_slots_client_.getService().c_str());
   add_slots_client_.waitForExistence();
+  ROS_INFO("Client %s connected to server", add_slots_client_.getService().c_str());
 
 }
 
@@ -682,9 +697,9 @@ GoToLocationFromParam::GoToLocationFromParam( const ros::NodeHandle &nh):
 bool GoToLocationFromParam::readLocationsFromParam()
 {
   XmlRpc::XmlRpcValue go_to_locations;
-  if (!nh_.getParam("/go_to_location/manipulator",go_to_locations))
+  if (!nh_.getParam("/go_to_location",go_to_locations))
   {
-    ROS_ERROR("Unable to find /go_to_location/manipulator");
+    ROS_ERROR("Unable to find /go_to_location");
     return false;
   }
 

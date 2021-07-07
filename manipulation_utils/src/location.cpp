@@ -140,7 +140,7 @@ bool LocationManager::init()
     ROS_ERROR("parameter %s/groups is not defined",m_nh.getNamespace().c_str());
     if (m_nh.hasParam("groups"))
     {
-      ROS_ERROR("parameter %s/groups is not wrong",m_nh.getNamespace().c_str());
+      ROS_ERROR("parameter %s/groups is wrong",m_nh.getNamespace().c_str());
     }
     return false;
   }
