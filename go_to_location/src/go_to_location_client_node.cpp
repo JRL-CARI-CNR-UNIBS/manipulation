@@ -37,14 +37,23 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "go_to_location_client");
   ros::NodeHandle nh;
 
-  actionlib::SimpleActionClient<manipulation_msgs::GoToAction> goto_ac("/go_to_location_server/manipulator/go_to");
+  std::vector<std::string> group_names;
+  if (!nh.getParam("/go_to_location_server/move_group_names",group_names))
+  {
+    ROS_ERROR("Unable to find /go_to_location_server/move_group_names");
+    return false;
+  }
+
+  // N.B. As example it is supposed to have a single move_group, in case of multiple move groups
+  // it is necessary to create multiple GoToAction client, one for each move group
+  actionlib::SimpleActionClient<manipulation_msgs::GoToAction> goto_ac("/go_to_location_server/"+group_names.at(0)+"/go_to");
   ROS_INFO("Waiting for GoToLocation server");
   goto_ac.waitForServer();
   ROS_INFO("Connection ok");
 
   manipulation_msgs::GoToGoal goto_goal;
-  goto_goal.location_names.push_back("warehouse2");
-  goto_goal.to_loc_ctrl_id = "trj_tracker";
+  goto_goal.location_names.push_back("home");
+  goto_goal.to_loc_ctrl_id = "trajectory_tracking";
   goto_goal.tool_id = "fake_gripper";
   goto_goal.property_exec_id = "open";
 

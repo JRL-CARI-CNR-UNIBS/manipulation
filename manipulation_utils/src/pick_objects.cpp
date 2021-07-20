@@ -87,6 +87,7 @@ namespace manipulation
   bool PickObjects::addBoxesCb( manipulation_msgs::AddBoxes::Request& req,
                                 manipulation_msgs::AddBoxes::Response& res)
   {
+    int n_added_boxes, n_added_objects = 0;
     bool objects_added, boxes_added = false;
     for (const manipulation_msgs::Box& box: req.add_boxes )
     {
@@ -99,6 +100,7 @@ namespace manipulation
           else
           {
             ROS_INFO("Added the object %s of the type %s in box %s",object.name.c_str(), object.type.c_str(), box.name.c_str());
+            n_added_objects++;
             objects_added = true;   
           }
         }
@@ -111,14 +113,23 @@ namespace manipulation
           m_boxes.erase(m_boxes.find(box.name));
           continue;
         }
+        n_added_boxes++;
         boxes_added = true;
       }
     }
     
     if (objects_added || boxes_added)
+    {
       res.results = manipulation_msgs::AddBoxes::Response::Success;
+      res.added_boxes = n_added_boxes;
+      res.added_objects = n_added_objects;
+    }
     else
+    {
       res.results = manipulation_msgs::AddBoxes::Response::Error;
+      res.added_boxes = n_added_boxes;
+      res.added_objects = n_added_objects;
+    }
 
     return ( objects_added || boxes_added);
 
@@ -151,6 +162,7 @@ namespace manipulation
       return false;
     }
 
+    int n_added_objects = 0;
     bool objects_added = false;
 
     for (const manipulation_msgs::Object& object: req.add_objects )
@@ -160,14 +172,21 @@ namespace manipulation
       else
       {
         ROS_INFO("Added the object %s of the type %s in box %s",object.name.c_str(), object.type.c_str(), req.box_name.c_str());
-        objects_added = true;   
+        objects_added = true;
+        n_added_objects++;   
       }
     }
 
     if (objects_added)
+    {
       res.results = manipulation_msgs::AddObjects::Response::Success;
+      res.added_objects = n_added_objects;
+    }
     else
+    {
       res.results = manipulation_msgs::AddObjects::Response::Error;
+      res.added_objects = n_added_objects;
+    }
     
     return objects_added;
   }
@@ -408,7 +427,6 @@ namespace manipulation
         action_res.result = manipulation_msgs::PickObjectsResult::TrajectoryError;
         ROS_ERROR("Error executing %s/follow_joint_trajectory",group_name.c_str());
         as->setAborted(action_res,"error in trajectory execution");
-        //selected_box->addObject(selected_object);
         return;
       }
 
@@ -529,25 +547,6 @@ namespace manipulation
       action_res.expected_execution_duration += plan.trajectory_.joint_trajectory.points.back().time_from_start;
       action_res.path_length += trajectory_processing::computeTrajectoryLength(plan.trajectory_.joint_trajectory);
 
-
-
-
-      // if (!selected_box->removeObject(selected_object->getName()))
-      //   ROS_WARN("Unable to remove object %s form box %s", selected_box->getName().c_str(), selected_object->getName().c_str());
-      
-      ///
-      // fjtClientWaitForResult(group_name);
-
-      // if (!wait(group_name))
-      // {
-      //   action_res.result = manipulation_msgs::PickObjectsResult::TrajectoryError;
-      //   ROS_ERROR("Error executing %s/follow_joint_trajectory",group_name.c_str());
-      //   as->setAborted(action_res,"error in trajectory execution");
-      //   selected_box->addObject(selected_object);
-      //   return;
-      // }
-      ////
-
       disp_trj.trajectory.at(0) = (plan.trajectory_);
       disp_trj.trajectory_start = plan.start_state_;
       m_display_publisher.publish(disp_trj);
@@ -571,7 +570,6 @@ namespace manipulation
         action_res.result = manipulation_msgs::PickObjectsResult::TrajectoryError;
         ROS_ERROR("Error executing %s/follow_joint_trajectory",group_name.c_str());
         as->setAborted(action_res,"error in trajectory execution");
-        //selected_box->addObject(selected_object);
         return;
       }
 

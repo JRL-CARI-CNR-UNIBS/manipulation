@@ -38,7 +38,16 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "inbound_pick_client");
   ros::NodeHandle nh;
 
-  actionlib::SimpleActionClient<manipulation_msgs::PickObjectsAction> pick_ac("/inbound_pick_server/manipulator/pick");
+  std::vector<std::string> group_names;
+  if (!nh.getParam("/inbound_pick_server/move_group_names",group_names))
+  {
+    ROS_ERROR("Unable to find /inbound_pick_server/move_group_names");
+    return false;
+  }
+
+  // N.B. As example it is supposed to have a single move_group, in case of multiple move groups
+  // it is necessary to create multiple PickObjectsAction client, one for each move group
+  actionlib::SimpleActionClient<manipulation_msgs::PickObjectsAction> pick_ac("/inbound_pick_server/"+group_names.at(0)+"/pick");
   ROS_INFO("Waiting for pick server");
   pick_ac.waitForServer();
   ROS_INFO("Connection ok");
@@ -47,7 +56,7 @@ int main(int argc, char **argv)
   pick_goal.object_types.push_back("squadra_piccola");
   //pick_goal.object_types.push_back("squadra_grande");
 
-  pick_goal.to_loc_ctrl_id = "trj_tracker";
+  pick_goal.to_loc_ctrl_id = "trajectory_tracking";
   pick_goal.tool_id = "fake_gripper";
   pick_goal.property_exec_id = "close";
 

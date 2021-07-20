@@ -50,7 +50,16 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "outbound_place_client");
   ros::NodeHandle nh;
 
-  actionlib::SimpleActionClient<manipulation_msgs::PlaceObjectsAction> place_ac("/outbound_place_server/manipulator/place");
+  std::vector<std::string> group_names;
+  if (!nh.getParam("/outbound_place_server/move_group_names",group_names))
+  {
+    ROS_ERROR("Unable to find /outbound_place_server/move_group_names");
+    return false;
+  }
+
+  // N.B. As example it is supposed to have a single move_group, in case of multiple move groups
+  // it is necessary to create multiple PlaceObjectsAction client, one for each move group
+  actionlib::SimpleActionClient<manipulation_msgs::PlaceObjectsAction> place_ac("/outbound_place_server/"+group_names.at(0)+"/place");
   ROS_INFO("Waiting for place server");
   place_ac.waitForServer();
   ROS_INFO("Connection ok");
@@ -59,7 +68,7 @@ int main(int argc, char **argv)
   place_goal.object_name = object_name;
   place_goal.slots_group_names.push_back("group_A");
 
-  place_goal.to_loc_ctrl_id = "trj_tracker";
+  place_goal.to_loc_ctrl_id = "trajectory_tracking";
   place_goal.tool_id = "fake_gripper";
   place_goal.property_exec_id = "open";
 
