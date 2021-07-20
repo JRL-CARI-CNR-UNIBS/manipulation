@@ -374,7 +374,7 @@ bool InboundPickFromParam::readObjectFromParam()
         ROS_WARN("The element #%u has not the field 'tool'", ig);
         continue;
       }
-      std::string tool_name=rosparam_utilities::toString(pose["tool"]);
+      std::string tool_name = rosparam_utilities::toString(pose["tool"]);
 
 
       std::vector<double> position;
@@ -405,7 +405,7 @@ bool InboundPickFromParam::readObjectFromParam()
       T_obj_grasp.translation()(2) = position.at(2);
 
       Eigen::Affine3d T_w_grasp = T_w_object * T_obj_grasp;
- 
+      
       Eigen::Vector3d approach_distance_in_world = T_w_frame.linear() * approach_distance_in_frame;
 
       Eigen::Affine3d T_w_approach = T_w_grasp;

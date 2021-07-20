@@ -18,6 +18,7 @@ env:
   matrix:
     - ROS_DISTRO=noetic ROS_REPO=ros
     - ROS_DISTRO=noetic ROS_REPO=ros-testing
+    - ROS_DISTRO=noetic DOWNSTREAM_WORKSPACE='manipulation_test.rosinstall -inbound_pick_test -outbound_place_test -go_to_location_test'
 install:
   - git clone --quiet --depth 1 https://github.com/ros-industrial/industrial_ci.git .industrial_ci -b master
 script:

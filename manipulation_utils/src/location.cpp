@@ -217,11 +217,7 @@ bool LocationManager::init()
       }
     }
 
-    ///////// TESTING
-    // Set the collision detector
     m_collision_loader.setupScene(m_nh,m_planning_scene.at(group_name));
-    //m_planning_scene.at(group_name)->setActiveCollisionDetector(collision_detection::CollisionDetectorAllocatorBullet::create());
-    ///////// TESTING
 
     Eigen::Vector3d gravity;
     gravity << 0,0,-9.806; // Muovere in file di configurazione
@@ -235,7 +231,7 @@ bool LocationManager::init()
 
     if (m_nh.getParam(group_name+"/lower_bound",lower_bound))
     {
-      if (lower_bound.size()!=n_joints)
+      if (lower_bound.size() != n_joints)
       {
         ROS_ERROR("%s/lower_bound has wrong dimensions",group_name.c_str());
         return false;
@@ -246,7 +242,7 @@ bool LocationManager::init()
       lower_bound.resize(n_joints);
       for (size_t itmp=0;itmp<n_joints;itmp++)
       {
-        lower_bound.at(itmp)=chain->getQMin()(itmp);
+        lower_bound.at(itmp) = chain->getQMin()(itmp);
       }
     }
 
@@ -261,21 +257,21 @@ bool LocationManager::init()
     else
     {
       upper_bound.resize(n_joints);
-      for (size_t itmp=0;itmp<n_joints;itmp++)
+      for (size_t itmp=0; itmp<n_joints; itmp++)
       {
-        upper_bound.at(itmp)=chain->getQMax()(itmp);
+        upper_bound.at(itmp) = chain->getQMax()(itmp);
       }
     }
-    for (size_t itmp=0;itmp<n_joints;itmp++)
+    for (size_t itmp=0; itmp<n_joints; itmp++)
     {
-      upper_bound.at(itmp)=std::min(upper_bound.at(itmp),chain->getQMax()(itmp));
-      lower_bound.at(itmp)=std::max(lower_bound.at(itmp),chain->getQMin()(itmp));
-      ROS_DEBUG("bounds of joint %zu: %f,%f",itmp,lower_bound.at(itmp),upper_bound.at(itmp));
+      upper_bound.at(itmp) = std::min(upper_bound.at(itmp),chain->getQMax()(itmp));
+      lower_bound.at(itmp) = std::max(lower_bound.at(itmp),chain->getQMin()(itmp));
+      
+      ROS_INFO("bounds of joint %zu: %f,%f",itmp,lower_bound.at(itmp),upper_bound.at(itmp));
     }
 
     m_upper_bound.insert(std::pair<std::string,std::vector<double>>(group_name,upper_bound));
     m_lower_bound.insert(std::pair<std::string,std::vector<double>>(group_name,lower_bound));
-
 
     std::vector<double> tmp;
     if (m_nh.getParam(group_name+"/preferred_configuration",tmp))
@@ -370,7 +366,7 @@ bool LocationManager::getLocationIkCb(manipulation_msgs::GetLocationIkSolution::
     ROS_WARN("Location %s is not present",req.location_name.c_str());
     return false;
   }
-  LocationPtr loc=m_locations.at(req.location_name);
+  LocationPtr loc = m_locations.at(req.location_name);
   std::vector<Eigen::VectorXd> ik_sols=loc->getApproachIk(req.group_name);
   for (const Eigen::VectorXd& q: ik_sols)
   {
@@ -602,8 +598,31 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
       goal_state.setJointGroupPositions(jmg, goal);
       goal_state.updateCollisionBodyTransforms();
       if (!planning_scene->isStateValid(goal_state,group_name))
-        continue;
+      {
+        ROS_WARN("The goal state is not valid.");
+        if(planning_scene->isStateColliding(group_name))
+        {
+          ROS_WARN("The group %s is colliding.", group_name.c_str());
+          
+          collision_detection::CollisionRequest collision_request;
+          collision_detection::CollisionResult collision_result;
+          
+          collision_request.group_name = group_name;
+          collision_request.contacts = true;
+          collision_request.max_contacts = 1000;
 
+          collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
+          moveit::core::RobotState copied_state = planning_scene->getCurrentState();
+
+          planning_scene->checkCollision(collision_request, collision_result, copied_state, acm);  
+          collision_detection::CollisionResult::ContactMap::const_iterator it;
+          for(it = collision_result.contacts.begin(); 
+              it != collision_result.contacts.end(); ++it)
+            ROS_WARN("Contact between: %s and %s", it->first.first.c_str(), it->first.second.c_str());
+        }
+        continue;
+      }
+      
       double normsol = (goal - preferred_jconf).norm();
       solutions.insert(std::pair<double,Eigen::VectorXd>(normsol,goal));
 
@@ -747,11 +766,11 @@ bool LocationManager::ik( const std::string& group_name,
   unsigned int n_seed = seed.size();
   bool found = false;
 
-  std::vector<double> lower_bound=m_lower_bound.at(group_name);
-  std::vector<double> upper_bound=m_upper_bound.at(group_name);
+  std::vector<double> lower_bound = m_lower_bound.at(group_name);
+  std::vector<double> upper_bound = m_upper_bound.at(group_name);
 
   int stall=0;
-  for (unsigned int iter=0;iter<N_MAX_ITER;iter++)
+  for (unsigned int iter=0; iter<N_MAX_ITER; iter++)
   {
     if (solutions.size()>=ntrial)
       break;
@@ -779,10 +798,9 @@ bool LocationManager::ik( const std::string& group_name,
     state.copyJointGroupPositions(group_name,start);
     if (m_chains.at(group_name)->computeLocalIk(js,T_w_a,start,1e-4,ros::Duration(0.002)))
     {
-      bool out_of_bound=false;
-      for (unsigned int iax=0;iax<lower_bound.size();iax++)
+      bool out_of_bound = false;
+      for (unsigned int iax=0; iax<lower_bound.size(); iax++)
       {
-
         if ( (js(iax)<lower_bound.at(iax)) || (js(iax)>upper_bound.at(iax)))
         {
           out_of_bound=true;
@@ -796,8 +814,6 @@ bool LocationManager::ik( const std::string& group_name,
 
       if (!state.satisfiesBounds())
         continue;
-
-
 
       state.updateCollisionBodyTransforms();
       if (!planning_scene->isStateValid(state,group_name))
