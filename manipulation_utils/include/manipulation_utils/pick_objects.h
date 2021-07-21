@@ -72,8 +72,7 @@ namespace manipulation
   
     public:
       PickObjects(const ros::NodeHandle& nh,
-                  const ros::NodeHandle& pnh,
-                  const std::string& skill_name );
+                  const ros::NodeHandle& pnh);
 
       bool init();
 

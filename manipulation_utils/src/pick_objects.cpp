@@ -37,11 +37,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace manipulation
 {
   PickObjects::PickObjects( const ros::NodeHandle& nh, 
-                            const ros::NodeHandle& pnh,
-                            const std::string& skill_name):
+                            const ros::NodeHandle& pnh):
                             m_nh(nh),
                             m_pnh(pnh),
-                            SkillBase(nh,pnh,skill_name)
+                            SkillBase(nh,pnh,"pick")
   {
     // nothing to do here     
   }
@@ -433,10 +432,10 @@ namespace manipulation
       // Set the desired tool behaviour 
       if(!goal->property_pre_exec_id.empty())
       {
-        if (!jobExecute(goal->tool_id,goal->property_pre_exec_id) )
+        if (!jobExecute(goal->job_exec_name,goal->tool_id,goal->property_pre_exec_id) )
         {
           action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
-          ROS_ERROR("Error on service %s during job pre execution", m_job_srv.getService().c_str());
+          ROS_ERROR("Error during job pre execution");
           as->setAborted(action_res,"error on service JobExecution result");
           return;
         }
@@ -602,11 +601,10 @@ namespace manipulation
       // Set the desired tool behaviour 
       if(!goal->property_exec_id.empty())
       {
-        if (!jobExecute(goal->tool_id,goal->property_exec_id) )
+        if (!jobExecute(goal->job_exec_name,goal->tool_id,goal->property_exec_id) )
         {
           action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
-          ROS_ERROR("Error on service %s result for object name %s during job execution", m_job_srv.getService().c_str(),
-                                                                                          best_object_name.c_str() );
+          ROS_ERROR("Error during job execution for object name %s ", best_object_name.c_str() );
           as->setAborted(action_res,"error on service JobExecution result");
           return;
         }
@@ -697,11 +695,10 @@ namespace manipulation
       // Set the desired tool behaviour 
       if(!goal->property_post_exec_id.empty())
       {
-        if (!jobExecute(goal->tool_id,goal->property_post_exec_id) )
+        if (!jobExecute(goal->job_exec_name,goal->tool_id,goal->property_post_exec_id) )
         {
           action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
-          ROS_ERROR("Error on service %s result for object name %s during job post execution",  m_job_srv.getService().c_str(),
-                                                                                                best_object_name.c_str() );
+          ROS_ERROR("Error during job post execution for object name %s", best_object_name.c_str() );
           as->setAborted(action_res,"error on service JobExecution result");
           return;
         }

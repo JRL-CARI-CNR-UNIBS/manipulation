@@ -41,7 +41,7 @@ int main(int argc, char **argv)
   spinner.start();
 
   ROS_INFO("Creating GoToLocation server...");
-  manipulation::GoToLocation go_to(nh,pnh,"go_to");
+  manipulation::GoToLocation go_to(nh,pnh);
 
   ros::ServiceClient ps_client = nh.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
   ps_client.waitForExistence();

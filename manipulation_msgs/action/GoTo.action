@@ -2,7 +2,9 @@
 string[] location_names
 #Controller type used during the execution of the movement
 string to_loc_ctrl_id
-#Tool referance to execute the skill
+#name of the tool client topic
+string job_exec_name
+#Tool name to execute the skill
 string tool_id
 #Property associated to the use of the tool
 string property_exec_id

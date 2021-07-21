@@ -54,6 +54,7 @@ int main(int argc, char **argv)
   manipulation_msgs::GoToGoal goto_goal;
   goto_goal.location_names.push_back("home");
   goto_goal.to_loc_ctrl_id = "trajectory_tracking";
+  goto_goal.job_exec_name = "go_to";
   goto_goal.tool_id = "fake_gripper";
   goto_goal.property_exec_id = "open";
 

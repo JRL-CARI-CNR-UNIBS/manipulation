@@ -14,7 +14,9 @@ string approach_loc_ctrl_id
 string to_loc_ctrl_id
 #Controller type used during the execution of the movement to leave the picking location
 string leave_loc_ctrl_id
-#Tool referance to execute the skill
+#name of the tool client topic
+string job_exec_name
+#Tool name to execute the skill
 string tool_id
 #Property associated to the use of the tool before picking execution
 string property_pre_exec_id
