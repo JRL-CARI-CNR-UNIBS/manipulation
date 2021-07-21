@@ -67,9 +67,6 @@ namespace manipulation
      
     m_target_pub = m_nh.advertise<geometry_msgs::PoseStamped>("target_visualization",1);
 
-    m_job_srv = m_pnh.serviceClient<manipulation_msgs::JobExecution>("job/"+m_skill_name); 
-    m_job_srv.waitForExistence();
-
     m_set_ctrl_srv = m_pnh.serviceClient<configuration_msgs::StartConfiguration>("/configuration_manager/start_configuration"); 
     m_set_ctrl_srv.waitForExistence();
 
@@ -152,17 +149,21 @@ namespace manipulation
      m_fjt_clients.at(group_name)->waitForResult();
   }
 
-  bool SkillBase::jobExecute( const std::string& tool_id,
+  bool SkillBase::jobExecute( const std::string& job_executor_name,
+                              const std::string& tool_id,
                               const std::string& property_id  )
   {
+    ros::ServiceClient job_srv = m_pnh.serviceClient<manipulation_msgs::JobExecution>("job/"+job_executor_name); 
+    job_srv.waitForExistence();
+
     manipulation_msgs::JobExecution job_req;
     job_req.request.skill_name = m_skill_name;
     job_req.request.tool_id = tool_id;
     job_req.request.property_id = property_id;
 
-    if (!m_job_srv.call(job_req))
+    if (!job_srv.call(job_req))
     {
-      ROS_ERROR("Unable to call %s service during job execution of skill %s",m_job_srv.getService().c_str(), m_skill_name.c_str());
+      ROS_ERROR("Unable to call %s service during job execution of skill %s",job_srv.getService().c_str(), job_executor_name.c_str());
       return false;
     }
 

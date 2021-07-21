@@ -32,11 +32,10 @@ namespace manipulation
 {
 
 GoToLocation::GoToLocation( const ros::NodeHandle& nh, 
-                            const ros::NodeHandle& pnh,
-                            const std::string& skill_name):
+                            const ros::NodeHandle& pnh):
                             m_nh(nh),
                             m_pnh(pnh),
-                            SkillBase(nh,pnh,skill_name)
+                            SkillBase(nh,pnh,"go_to")
 {
   // nothing to do here    
 }
@@ -184,10 +183,10 @@ void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,
     // Set the desired tool behaviour 
     if(!goal->property_exec_id.empty())
     {
-      if (!jobExecute(goal->tool_id,goal->property_exec_id) )
+      if (!jobExecute(goal->job_exec_name,goal->tool_id,goal->property_exec_id) )
       {
         action_res.result = manipulation_msgs::GoToResult::ToolError;
-        ROS_ERROR("Error on service %s result during job execution", m_job_srv.getService().c_str() );
+        ROS_ERROR("Error during job execution" );
         as->setAborted(action_res,"error on service JobExecution result.");
         return;
       }

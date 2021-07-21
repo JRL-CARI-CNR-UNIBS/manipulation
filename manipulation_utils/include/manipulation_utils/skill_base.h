@@ -55,7 +55,6 @@ namespace manipulation
       std::map<std::string,double> m_fjt_result;
       
       ros::Publisher m_target_pub;
-      ros::ServiceClient m_job_srv;
       ros::ServiceClient m_set_ctrl_srv;
       
       tf::TransformBroadcaster m_broadcaster;
@@ -73,7 +72,8 @@ namespace manipulation
 
       void fjtClientWaitForResult(const std::string& group_name);
 
-      bool jobExecute(const std::string& tool_id,
+      bool jobExecute(const std::string& job_executor_name,
+                      const std::string& tool_id,
                       const std::string& property_id );
 
       bool setController( const std::string& controller_name );
