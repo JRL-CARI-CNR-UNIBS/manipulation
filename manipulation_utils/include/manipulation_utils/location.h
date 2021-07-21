@@ -158,7 +158,6 @@ protected:
   std::map<std::string,std::vector<double>> m_lower_bound;
   std::map<std::string,std::vector<double>> m_upper_bound;
 
-
   std::mutex m_scene_mtx; 
   std::map<std::string,LocationPtr> m_locations;
 
