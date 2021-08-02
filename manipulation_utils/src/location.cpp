@@ -417,8 +417,73 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
     std::vector<Eigen::VectorXd> leave_sols;
     std::vector<Eigen::VectorXd> approach_sols;
 
+    bool param_ik_sols=m_nh.hasParam(location_ptr->m_name+"/"+group.first);
+    bool compute_ik=not param_ik_sols;
 
-    if (!m_nh.hasParam(location_ptr->m_name+"/"+group.first))
+    if (param_ik_sols)
+    {
+      std::string what;
+      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/"+group.first,sols,what))
+      {
+        ROS_ERROR("Parameter %s/%s/%s is not correct. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+        compute_ik=true;
+      }
+      else if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/approach/"+group.first,approach_sols,what))
+      {
+        ROS_ERROR("Parameter %s/%s/approach/%s is not correct. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+        compute_ik=true;
+      }
+      else if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/leave/"+group.first,leave_sols,what))
+      {
+        ROS_ERROR("Parameter %s/%s/leave/%s is not correct. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+        compute_ik=true;
+      }
+      else if (sols.size()==0)
+      {
+        ROS_ERROR("Parameter %s/%s/%s has no solutions. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+        compute_ik=true;
+      }
+      else if (approach_sols.size()==0)
+      {
+        ROS_ERROR("Parameter %s/%s/apporach/%s has no solutions. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+        compute_ik=true;
+      }
+      else if (leave_sols.size()==0)
+      {
+        ROS_ERROR("Parameter %s/%s/leave/%s has no solutions. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+        compute_ik=true;
+      }
+      else
+      {
+        Eigen::Vector6d error;
+
+        Eigen::Affine3d T_w_loc=m_chains.at(group.first)->getTransformation(sols.at(0));
+        rosdyn::getFrameDistance(T_w_loc,location_ptr->m_T_w_location,error);
+        if (error.norm()>1e-5)
+        {
+          ROS_ERROR("Parameter %s/%s/%s reprensent a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+          compute_ik=true;
+        }
+
+        Eigen::Affine3d T_w_approach=m_chains.at(group.first)->getTransformation(approach_sols.at(0));
+        rosdyn::getFrameDistance(T_w_approach,location_ptr->m_T_w_approach,error);
+        if (error.norm()>1e-5)
+        {
+          ROS_ERROR("Parameter %s/%s/approach/%s reprensent a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+          compute_ik=true;
+        }
+
+        Eigen::Affine3d T_w_leave=m_chains.at(group.first)->getTransformation(leave_sols.at(0));
+        rosdyn::getFrameDistance(T_w_leave,location_ptr->m_T_w_leave,error);
+        if (error.norm()>1e-5)
+        {
+          ROS_ERROR("Parameter %s/%s/leave/%s reprensent a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+          compute_ik=true;
+        }
+      }
+    }
+
+    if (compute_ik)
     {
       if (!ik(group.first,location_ptr->m_T_w_location,seed,location_sols,m_ik_sol_number))
       {
@@ -445,25 +510,7 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
       rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/approach/"+group.first),approach_sols);
       rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/leave/"+group.first),leave_sols);
     }
-    else
-    {
-      std::string what;
-      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/"+group.first,sols,what))
-      {
-        ROS_ERROR("Parameter %s/%s/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
-        return false;
-      }
-      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/approach/"+group.first,approach_sols,what))
-      {
-        ROS_ERROR("Parameter %s/%s/approach/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
-        return false;
-      }
-      if (!rosparam_utilities::getParam(m_nh,location_ptr->m_name+"/leave/"+group.first,leave_sols,what))
-      {
-        ROS_ERROR("Parameter %s/%s/leave/%s is not correct.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
-        return false;
-      }
-    }
+
 
     location_ptr->addLocationIk(group.first,sols);
     location_ptr->addApproachIk(group.first,approach_sols);
