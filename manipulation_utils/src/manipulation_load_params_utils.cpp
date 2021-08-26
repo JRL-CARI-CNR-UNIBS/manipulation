@@ -251,7 +251,7 @@ bool InboundPickFromParam::readObjectFromParam()
     std::string type = rosparam_utilities::toString(object["type"]);
     
     XmlRpc::XmlRpcValue type_config;
-    if (!nh_.getParam("/" + type,type_config))
+    if (!nh_.getParam("/manipulation_objects/" + type,type_config))
     {
       ROS_WARN("Type %s does not exist",type.c_str());
       continue;
