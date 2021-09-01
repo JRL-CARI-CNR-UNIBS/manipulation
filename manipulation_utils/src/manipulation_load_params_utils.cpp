@@ -461,6 +461,226 @@ bool InboundPickFromParam::readObjectFromParam()
   return true;
 }
 
+bool InboundPickFromParam::readObjectFromParamWithoutSceneSpawn()
+{
+  XmlRpc::XmlRpcValue config;
+  if (!nh_.getParam("/inbound/objects",config))
+  {
+    ROS_ERROR("Unable to find /inbound/objects");
+    return false;
+  }
+
+  if (config.getType() != XmlRpc::XmlRpcValue::TypeArray)
+  {
+    ROS_ERROR("The param is not a list of objects" );
+    return false;
+  }
+  ROS_INFO("There are %d objects",config.size());
+
+  object_loader_msgs::AddObjects srv;
+  std::map<std::string,std::shared_ptr<manipulation_msgs::AddObjects>> add_objs_srv;
+
+  int obj_type_idx = 0;
+  std::string prev_obj_type;
+
+  for(size_t i=0; i < config.size(); i++)
+  {
+    XmlRpc::XmlRpcValue object = config[i];
+    if( object.getType() != XmlRpc::XmlRpcValue::TypeStruct)
+    {
+      ROS_WARN("The element #%zu is not a struct", i);
+      continue;
+    }
+    if( !object.hasMember("type") )
+    {
+      ROS_WARN("The element #%zu has not the field 'type'", i);
+      continue;
+    }
+    std::string type = rosparam_utilities::toString(object["type"]);
+
+    XmlRpc::XmlRpcValue type_config;
+    if (!nh_.getParam("/manipulation_objects/" + type,type_config))
+    {
+      ROS_WARN("Type %s does not exist",type.c_str());
+      continue;
+    }
+
+    if( !object.hasMember("inbound") )
+    {
+      ROS_WARN("The element #%zu has not the field 'inbound'", i);
+      continue;
+    }
+    std::string box_name = rosparam_utilities::toString(object["inbound"]);
+
+    if (add_objs_srv.count(box_name)==0)
+      add_objs_srv.insert(std::pair<std::string,std::shared_ptr<manipulation_msgs::AddObjects>>(box_name,std::make_shared<manipulation_msgs::AddObjects>()));
+
+    if (type.compare(prev_obj_type) != 0)
+    {
+      obj_type_idx = 0;
+      prev_obj_type = type;
+    }
+
+    add_objs_srv.at(box_name)->request.box_name = box_name;
+    manipulation_msgs::Object obj;
+    obj.type = type;
+    obj.name = type + "_" + std::to_string(obj_type_idx++);
+
+    if( !object.hasMember("frame") )
+    {
+      ROS_WARN("The element #%zu has not the field 'frame'", i);
+      continue;
+    }
+    std::string frame_name = rosparam_utilities::toString(object["frame"]);
+
+    ROS_INFO("Object type: %s, box name: %s, frame: %s", type.c_str(),box_name.c_str(),frame_name.c_str());
+
+    std::string what;
+    std::vector<double> position;
+    if( !rosparam_utilities::getParam(object,"position",position, what) )
+    {
+      ROS_WARN("Pose has not the field 'position'");
+      continue;
+    }
+
+    assert(position.size()==3);
+
+    std::vector<double> quaternion;
+    if( !rosparam_utilities::getParam(object,"quaternion",quaternion,what) )
+    {
+      ROS_WARN("pose has not the field 'quaternion'");
+      continue;
+    }
+    assert(quaternion.size()==4);
+
+    std::vector<double> approach_distance_d;
+    if( !rosparam_utilities::getParam(object,"approach_distance",approach_distance_d,what) )
+    {
+      ROS_WARN("Object %s has not the field 'approach_distance'",obj.name.c_str());
+      return false;
+    }
+    assert(approach_distance_d.size()==3);
+    Eigen::Vector3d approach_distance_in_frame;
+    approach_distance_in_frame(0) = approach_distance_d.at(0);
+    approach_distance_in_frame(1) = approach_distance_d.at(1);
+    approach_distance_in_frame(2) = approach_distance_d.at(2);
+
+
+    tf::TransformListener listener;
+    tf::StampedTransform transform;
+    ros::Time t0 = ros::Time::now();
+    if (!listener.waitForTransform("world",frame_name,t0,ros::Duration(10)))
+    {
+      ROS_WARN("Unable to find a transform from world to %s", frame_name.c_str());
+      continue;
+    }
+
+    try
+    {
+      listener.lookupTransform("world",frame_name,t0,transform);
+    }
+    catch (tf::TransformException& ex)
+    {
+      ROS_ERROR("%s",ex.what());
+      ros::Duration(1.0).sleep();
+      continue;
+    }
+
+    Eigen::Affine3d T_w_frame;
+    tf::poseTFToEigen(transform,T_w_frame);
+
+    Eigen::Quaterniond q(quaternion.at(3),
+                         quaternion.at(0),
+                         quaternion.at(1),
+                         quaternion.at(2));
+    Eigen::Affine3d T_frame_object;
+    T_frame_object = q;
+    T_frame_object.translation()(0) = position.at(0);
+    T_frame_object.translation()(1) = position.at(1);
+    T_frame_object.translation()(2) = position.at(2);
+
+    Eigen::Affine3d T_w_object = T_w_frame * T_frame_object;
+
+    manipulation_msgs::Grasp grasp_obj;
+
+    if( !type_config.hasMember("grasp_poses") )
+    {
+      ROS_WARN("The element #%zu has not the field 'box'", i);
+      continue;
+    }
+    if (type_config["grasp_poses"].getType() != XmlRpc::XmlRpcValue::TypeArray)
+    {
+      ROS_ERROR("The param is not a list of grasping poses" );
+      return false;
+    }
+    for (unsigned int ig=0;ig<type_config["grasp_poses"].size();ig++)
+    {
+      XmlRpc::XmlRpcValue pose = type_config["grasp_poses"][ig];
+
+      if( !pose.hasMember("tool") )
+      {
+        ROS_WARN("The element #%u has not the field 'tool'", ig);
+        continue;
+      }
+      std::string tool_name = rosparam_utilities::toString(pose["tool"]);
+
+
+      std::vector<double> position;
+      if( !rosparam_utilities::getParam(pose,"position",position,what) )
+      {
+        ROS_WARN("The element #%u has not the field 'name'", ig);
+        continue;
+      }
+      assert(position.size()==3);
+
+      std::vector<double> quaternion;
+      if( !rosparam_utilities::getParam(pose,"quaternion",quaternion,what) )
+      {
+        ROS_WARN("The element #%u has not the field 'name'", ig);
+        continue;
+      }
+      assert(quaternion.size()==4);
+
+      Eigen::Quaterniond q(quaternion.at(3),
+                           quaternion.at(0),
+                           quaternion.at(1),
+                           quaternion.at(2));
+
+      Eigen::Affine3d T_obj_grasp;
+      T_obj_grasp = q;
+      T_obj_grasp.translation()(0) = position.at(0);
+      T_obj_grasp.translation()(1) = position.at(1);
+      T_obj_grasp.translation()(2) = position.at(2);
+
+      Eigen::Affine3d T_w_grasp = T_w_object * T_obj_grasp;
+
+      Eigen::Vector3d approach_distance_in_world = T_w_frame.linear() * approach_distance_in_frame;
+
+      Eigen::Affine3d T_w_approach = T_w_grasp;
+      T_w_approach.translation() += approach_distance_in_world;
+
+      Eigen::Affine3d T_grasp_approach = T_w_grasp.inverse() * T_w_approach;
+
+      grasp_obj.location.name = obj.name + "_gl"+std::to_string(ig);
+      grasp_obj.location.frame = "world";
+
+      tf::poseEigenToMsg(T_w_grasp,grasp_obj.location.pose);
+      tf::poseEigenToMsg(T_grasp_approach,grasp_obj.location.approach_relative_pose);
+      tf::poseEigenToMsg(T_grasp_approach,grasp_obj.location.leave_relative_pose);
+
+      grasp_obj.tool_name = tool_name;
+      obj.grasping_locations.push_back(grasp_obj);
+    }
+
+    add_objs_srv.at(box_name)->request.add_objects.push_back(obj);
+    if (!add_objs_client_.call(*add_objs_srv.at(box_name)))
+    {
+      ROS_ERROR("Something went wrong when calling the service ~/add_objects");
+      continue;
+    }
+  }
+  return true;
+}
 
 OutboundPlaceFromParam::OutboundPlaceFromParam( const ros::NodeHandle &nh):
                                                 nh_(nh)

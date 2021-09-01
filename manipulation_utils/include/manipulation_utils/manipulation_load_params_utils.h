@@ -43,6 +43,7 @@ namespace manipulation
     InboundPickFromParam(const ros::NodeHandle& nh);
     bool readBoxesFromParam();
     bool readObjectFromParam();
+    bool readObjectFromParamWithoutSceneSpawn();
   };
 
   class OutboundPlaceFromParam
