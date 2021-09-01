@@ -369,7 +369,7 @@ SlotsGroup::SlotsGroup( const ros::NodeHandle& nh,
 {
   m_group_name = slots_group.name;
 
-  for (const manipulation_msgs::Slot& slot: slots_group.slots)
+  for (const manipulation_msgs::Slot& slot: slots_group.manipulation_slots)
   {
     m_slots.insert(std::pair<std::string,SlotPtr>(slot.name, std::make_shared<manipulation::Slot>(m_nh,slot)));
     if (!m_slots.at(slot.name)->getIntState())

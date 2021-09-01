@@ -94,7 +94,7 @@ namespace manipulation
     {
       if(m_slots_group.find(slots_group.name) != m_slots_group.end())
       {
-        for(const manipulation_msgs::Slot& slot: slots_group.slots)
+        for(const manipulation_msgs::Slot& slot: slots_group.manipulation_slots)
         {
           if (!m_slots_group.at(slots_group.name)->addSlot(slot))
             m_slots_group.erase(m_slots_group.find(slots_group.name));
