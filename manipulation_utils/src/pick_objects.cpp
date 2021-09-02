@@ -86,7 +86,8 @@ namespace manipulation
   bool PickObjects::addBoxesCb( manipulation_msgs::AddBoxes::Request& req,
                                 manipulation_msgs::AddBoxes::Response& res)
   {
-    int n_added_boxes, n_added_objects = 0;
+    int n_added_boxes=0;
+    int n_added_objects = 0;
     bool objects_added, boxes_added = false;
     for (const manipulation_msgs::Box& box: req.add_boxes )
     {
