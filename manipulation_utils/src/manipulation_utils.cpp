@@ -78,7 +78,7 @@ Grasp::Grasp( const ros::NodeHandle& nh,
   
   m_tool_name = grasp.tool_name;
   m_location_name = grasp.location.name;
-  ROS_INFO("Added the new location %s to the location manager.",grasp.location.name.c_str());
+  ROS_DEBUG("Added the new location %s to the location manager.",grasp.location.name.c_str());
 
   return;
 }
@@ -111,7 +111,7 @@ Object::Object( const ros::NodeHandle& nh,
       m_grasp.pop_back();
     }
     else
-      ROS_INFO("Added the object: %s of the type: %s.", m_name.c_str(), m_type.c_str()); 
+      ROS_DEBUG("Added the object: %s of the type: %s.", m_name.c_str(), m_type.c_str());
   }
 }
 
@@ -311,7 +311,7 @@ Slot::Slot( const ros::NodeHandle& nh,
   }
   
   m_location_name = slot.location.name;
-  ROS_INFO("Added the new location %s to the location manager.",slot.location.name.c_str());
+  ROS_DEBUG("Added the new location %s to the location manager.",slot.location.name.c_str());
 
   return;
 }
@@ -381,7 +381,7 @@ SlotsGroup::SlotsGroup( const ros::NodeHandle& nh,
     computeGroupSize();
   }
   
-  ROS_INFO("Added the slots group %s.", m_group_name.c_str()); 
+  ROS_DEBUG("Added the slots group %s.", m_group_name.c_str());
 
 }
 
