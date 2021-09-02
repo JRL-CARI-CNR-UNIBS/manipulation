@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tf_conversions/tf_eigen.h>
 #include <rosparam_utilities/rosparam_utilities.h>
 #include <object_loader_msgs/AddObjects.h>
+#include <object_loader_msgs/ChangeColor.h>
 
 #include <manipulation_msgs/Box.h>
 #include <manipulation_msgs/Grasp.h>
@@ -37,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <manipulation_msgs/AddBoxes.h>
 #include <manipulation_msgs/AddObjects.h>
 #include <manipulation_msgs/AddSlots.h>
+
 #include <manipulation_msgs/AddSlotsGroup.h>
 #include <manipulation_msgs/PickObjectsAction.h>
 #include <manipulation_utils/manipulation_utils.h> 
@@ -106,7 +108,8 @@ InboundPickFromParam::InboundPickFromParam( const ros::NodeHandle &nh):
   add_box_client_ = nh_.serviceClient<manipulation_msgs::AddBoxes>("add_boxes");
   add_objs_client_ = nh_.serviceClient<manipulation_msgs::AddObjects>("add_objects");
   add_objs_to_scene_client_ = nh_.serviceClient<object_loader_msgs::AddObjects>("/add_object_to_scene");
-  
+  change_color_client_ = nh_.serviceClient<object_loader_msgs::ChangeColor>("/change_color");
+
   ROS_INFO("Waiting for: %s server", add_objs_client_.getService().c_str());
   add_objs_client_.waitForExistence();
   ROS_INFO("Client %s connected to server", add_objs_client_.getService().c_str());
@@ -243,7 +246,6 @@ bool InboundPickFromParam::readObjectFromParam()
   }
   ROS_INFO("There are %d objects",config.size());
 
-  object_loader_msgs::AddObjects srv;
   std::map<std::string,std::shared_ptr<manipulation_msgs::AddObjects>> add_objs_srv;
 
   int obj_type_idx = 0;
@@ -290,7 +292,7 @@ bool InboundPickFromParam::readObjectFromParam()
     add_objs_srv.at(box_name)->request.box_name = box_name;
     manipulation_msgs::Object obj;
     obj.type = type;
-    obj.name = type + "_" + std::to_string(obj_type_idx++);
+    // obj.name = type + "_" + std::to_string(obj_type_idx++);
 
     if( !object.hasMember("frame") )
     {
@@ -305,7 +307,7 @@ bool InboundPickFromParam::readObjectFromParam()
     std::vector<double> approach_distance_d;
     if( !rosparam_utilities::getParam(object,"approach_distance",approach_distance_d) )
     {
-      ROS_WARN("Object %s has not the field 'approach_distance'",obj.name.c_str());
+      ROS_WARN("Object %s has not the field 'approach_distance'",obj.type.c_str());
       return false;
     }
     assert(approach_distance_d.size()==3);
@@ -326,8 +328,26 @@ bool InboundPickFromParam::readObjectFromParam()
 
     Eigen::Affine3d T_w_object = T_w_frame * T_frame_object;
 
-    ROS_FATAL_STREAM("T_w_frame\n"<<T_w_frame.matrix());
-    ROS_FATAL_STREAM("T_w_object\n"<<T_w_object.matrix());
+
+    object_loader_msgs::Object col_obj;
+    tf::poseEigenToMsg(T_w_object,col_obj.pose.pose);
+    col_obj.pose.header.frame_id = "world";
+    col_obj.object_type = type;
+    object_loader_msgs::AddObjects srv;
+    srv.request.objects.push_back(col_obj);
+
+    if (!add_objs_to_scene_client_.call(srv))
+    {
+      ROS_ERROR("Something went wrong when calling the service ~/add_object_to_scene");
+      continue;
+    }
+    if (!srv.response.success)
+    {
+      ROS_ERROR("Something wrong when adding collision object");
+      continue;
+    }
+    obj.name=srv.response.ids.at(0);
+
     manipulation_msgs::Grasp grasp_obj;
 
     if( !type_config.hasMember("grasp_poses") )
@@ -379,34 +399,28 @@ bool InboundPickFromParam::readObjectFromParam()
       obj.grasping_locations.push_back(grasp_obj);
     }
 
+
+    // if manipulator is unable to manage the object, color it red
+    object_loader_msgs::ChangeColor color_srv;
+    std_msgs::ColorRGBA color_msg;
+    color_msg.a=0.5;
+    color_msg.r=1.0;
+    color_msg.g=0.0;
+    color_msg.b=0.0;
+    color_srv.request.ids.push_back(obj.name);
+    color_srv.request.colors.push_back(color_msg);
+
     add_objs_srv.at(box_name)->request.add_objects.push_back(obj);
     if (!add_objs_client_.call(*add_objs_srv.at(box_name)))
     {
       ROS_ERROR("Something went wrong when calling the service ~/add_objects");
+      change_color_client_.call(color_srv);
       continue;
     }
 
-    if (add_objs_srv.at(box_name)->response.results == manipulation_msgs::AddObjects::Response::Success)
+    if (add_objs_srv.at(box_name)->response.results != manipulation_msgs::AddObjects::Response::Success)
     {
-      object_loader_msgs::Object col_obj;
-      tf::poseEigenToMsg(T_w_object,col_obj.pose.pose);
-      col_obj.pose.header.frame_id = "world";
-      col_obj.object_type = type;
-      srv.request.objects.push_back(col_obj);
-
-      if (!add_objs_to_scene_client_.call(srv))
-      {
-        ROS_ERROR("Something went wrong when calling the service ~/add_object_to_scene");
-        continue;
-      }
-
-      if (!srv.response.success)
-      {
-        ROS_ERROR("Something wrong when adding collision object");
-        continue;
-      }
-
-      srv.request.objects.clear();
+      change_color_client_.call(color_srv);
     }
   }
 
