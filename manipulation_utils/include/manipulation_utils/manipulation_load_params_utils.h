@@ -30,12 +30,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Eigen/Geometry>
 #include <tf/transform_listener.h>
 
+#include <manipulation_msgs/AddObjects.h>
+
 namespace manipulation 
 {
 
-  Eigen::Affine3d poseFromParam(const XmlRpc::XmlRpcValue& obj);
+  Eigen::Affine3d poseFromParam(const XmlRpc::XmlRpcValue& config);
   Eigen::Affine3d poseFromTF(tf::TransformListener& listener, const std::string& frame);
 
+  bool loadObjectGrapFromParam(const ros::NodeHandle& nh,
+                                   const XmlRpc::XmlRpcValue& config,
+                                   const Eigen::Affine3d &T_w_frame,
+                                   const Eigen::Affine3d &T_w_object,
+                                   manipulation_msgs::Object& object);
 
   class InboundPickFromParam
   {

@@ -41,10 +41,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <manipulation_msgs/AddSlotsGroup.h>
 #include <manipulation_msgs/PickObjectsAction.h>
-#include <manipulation_utils/manipulation_utils.h> 
-#include <manipulation_utils/manipulation_load_params_utils.h> 
+#include <manipulation_utils/manipulation_utils.h>
+#include <manipulation_utils/manipulation_load_params_utils.h>
 
-namespace manipulation 
+namespace manipulation
 {
 
 Eigen::Affine3d poseFromTF(tf::TransformListener& listener, const std::string& frame)
@@ -71,11 +71,11 @@ Eigen::Affine3d poseFromTF(tf::TransformListener& listener, const std::string& f
   return T_w_frame;
 }
 
-bool poseFromParam(const XmlRpc::XmlRpcValue& obj, Eigen::Affine3d& T)
+bool poseFromParam(const XmlRpc::XmlRpcValue& config, Eigen::Affine3d& T)
 {
   std::string what;
   std::vector<double> position;
-  if( !rosparam_utilities::getParam(obj,"position",position,what) )
+  if( !rosparam_utilities::getParam(config,"position",position,what) )
   {
     ROS_WARN("The element  has not the field 'position'");
     return false;
@@ -83,7 +83,7 @@ bool poseFromParam(const XmlRpc::XmlRpcValue& obj, Eigen::Affine3d& T)
   assert(position.size()==3);
 
   std::vector<double> quaternion;
-  if( !rosparam_utilities::getParam(obj,"quaternion",quaternion,what) )
+  if( !rosparam_utilities::getParam(config,"quaternion",quaternion,what) )
   {
     ROS_WARN("The element has not the field 'quaternion'");
     return false;
@@ -101,6 +101,7 @@ bool poseFromParam(const XmlRpc::XmlRpcValue& obj, Eigen::Affine3d& T)
   T.translation()(2) = position.at(2);
   return true;
 }
+
 
 InboundPickFromParam::InboundPickFromParam( const ros::NodeHandle &nh):
                                             nh_(nh)
@@ -120,7 +121,7 @@ InboundPickFromParam::InboundPickFromParam( const ros::NodeHandle &nh):
 
   ROS_INFO("Scene spawner is waiting %s", add_objs_to_scene_client_.getService().c_str());
   add_objs_to_scene_client_.waitForExistence();
-  ROS_INFO("Client %s connected to server", add_objs_to_scene_client_.getService().c_str());  
+  ROS_INFO("Client %s connected to server", add_objs_to_scene_client_.getService().c_str());
 
 }
 
@@ -195,7 +196,7 @@ bool InboundPickFromParam::readBoxesFromParam()
     Eigen::Affine3d T_w_approach = T_w_box;
     T_w_approach.translation() += approach_distance_in_world;
 
-    Eigen::Affine3d T_box_approach = T_w_box.inverse() * T_w_approach;  
+    Eigen::Affine3d T_box_approach = T_w_box.inverse() * T_w_approach;
 
     manipulation_msgs::Box box_;
     box_.name = box_name;
@@ -216,14 +217,13 @@ bool InboundPickFromParam::readBoxesFromParam()
       return false;
 
     ROS_INFO("Added %d boxes and %d objects.",  add_boxes_srv.response.added_boxes,
-                                                add_boxes_srv.response.added_objects);  
+                                                add_boxes_srv.response.added_objects);
   }
   else
     ROS_WARN("Can't add any box to the location manager.");
-  
+
   return true;
 }
-
 
 bool InboundPickFromParam::readObjectFromParam()
 {
@@ -244,24 +244,21 @@ bool InboundPickFromParam::readObjectFromParam()
 
   std::map<std::string,std::shared_ptr<manipulation_msgs::AddObjects>> add_objs_srv;
 
-  int obj_type_idx = 0;
-  std::string prev_obj_type;
-
   for(int i=0; i < config.size(); i++)
   {
-    XmlRpc::XmlRpcValue object = config[i];
-    if( object.getType() != XmlRpc::XmlRpcValue::TypeStruct)
+    XmlRpc::XmlRpcValue object_config = config[i];
+    if( object_config.getType() != XmlRpc::XmlRpcValue::TypeStruct)
     {
       ROS_WARN("The element #%d is not a struct", i);
       continue;
     }
-    if( !object.hasMember("type") )
+    if( !object_config.hasMember("type") )
     {
       ROS_WARN("The element #%d has not the field 'type'", i);
       continue;
     }
-    std::string type = rosparam_utilities::toString(object["type"]);
-    
+    std::string type = rosparam_utilities::toString(object_config["type"]);
+
     XmlRpc::XmlRpcValue type_config;
     if (!nh_.getParam("/manipulation_objects_geometry/" + type,type_config))
     {
@@ -269,39 +266,31 @@ bool InboundPickFromParam::readObjectFromParam()
       continue;
     }
 
-    if( !object.hasMember("inbound") )
+    if( !object_config.hasMember("inbound") )
     {
       ROS_WARN("The element #%d has not the field 'inbound'", i);
       continue;
     }
-    std::string box_name = rosparam_utilities::toString(object["inbound"]);
+    std::string box_name = rosparam_utilities::toString(object_config["inbound"]);
 
     if (add_objs_srv.count(box_name)==0)
       add_objs_srv.insert(std::pair<std::string,std::shared_ptr<manipulation_msgs::AddObjects>>(box_name,std::make_shared<manipulation_msgs::AddObjects>()));
-    
-    if (type.compare(prev_obj_type) != 0) 
-    {
-      obj_type_idx = 0;
-      prev_obj_type = type;
-    }
 
-    add_objs_srv.at(box_name)->request.box_name = box_name;
     manipulation_msgs::Object obj;
     obj.type = type;
-    // obj.name = type + "_" + std::to_string(obj_type_idx++);
 
-    if( !object.hasMember("frame") )
+    if( !object_config.hasMember("frame") )
     {
       ROS_WARN("The element #%d has not the field 'frame'", i);
       continue;
     }
-    std::string frame_name = rosparam_utilities::toString(object["frame"]);
+    std::string frame_name = rosparam_utilities::toString(object_config["frame"]);
 
-    ROS_INFO("Object type: %s, box name: %s, frame: %s", type.c_str(),box_name.c_str(),frame_name.c_str());
+    ROS_DEBUG("Object type: %s, box name: %s, frame: %s", type.c_str(),box_name.c_str(),frame_name.c_str());
 
 
     std::vector<double> approach_distance_d;
-    if( !rosparam_utilities::getParam(object,"approach_distance",approach_distance_d) )
+    if( !rosparam_utilities::getParam(object_config,"approach_distance",approach_distance_d) )
     {
       ROS_WARN("Object %s has not the field 'approach_distance'",obj.type.c_str());
       return false;
@@ -316,7 +305,7 @@ bool InboundPickFromParam::readObjectFromParam()
     Eigen::Affine3d T_w_frame=poseFromTF(listener_,frame_name);
 
     Eigen::Affine3d T_frame_object;
-    if (not poseFromParam(object,T_frame_object))
+    if (not poseFromParam(object_config,T_frame_object))
     {
       ROS_WARN("The element #%d has not the field 'position' and/or 'quaternion'", i);
       continue;
@@ -376,13 +365,13 @@ bool InboundPickFromParam::readObjectFromParam()
       }
 
       Eigen::Affine3d T_w_grasp = T_w_object * T_obj_grasp;
-      
+
       Eigen::Vector3d approach_distance_in_world = T_w_frame.linear() * approach_distance_in_frame;
 
       Eigen::Affine3d T_w_approach = T_w_grasp;
       T_w_approach.translation() += approach_distance_in_world;
 
-      Eigen::Affine3d T_grasp_approach = T_w_grasp.inverse() * T_w_approach;  
+      Eigen::Affine3d T_grasp_approach = T_w_grasp.inverse() * T_w_approach;
 
       grasp_obj.location.name = obj.name + "_grasp"+std::to_string(ig);
       grasp_obj.location.frame = "world";
@@ -405,6 +394,8 @@ bool InboundPickFromParam::readObjectFromParam()
     color_msg.b=0.0;
     color_srv.request.ids.push_back(obj.name);
     color_srv.request.colors.push_back(color_msg);
+    add_objs_srv.at(box_name)->request.box_name = box_name;
+    add_objs_srv.at(box_name)->request.add_objects.clear();
 
     add_objs_srv.at(box_name)->request.add_objects.push_back(obj);
     if (!add_objs_client_.call(*add_objs_srv.at(box_name)))
@@ -420,11 +411,10 @@ bool InboundPickFromParam::readObjectFromParam()
     }
   }
 
-  //for (const std::pair<std::string,std::shared_ptr<manipulation_msgs::AddObjects>>& p: add_objs_srv)
-  //  add_objs_client_.call(*p.second);
-
   return true;
 }
+
+
 
 OutboundPlaceFromParam::OutboundPlaceFromParam( const ros::NodeHandle &nh):
                                                 nh_(nh)
@@ -435,7 +425,7 @@ OutboundPlaceFromParam::OutboundPlaceFromParam( const ros::NodeHandle &nh):
   ROS_INFO("Waiting for: %s server", add_slots_group_client_.getService().c_str());
   add_slots_group_client_.waitForExistence();
   ROS_INFO("Client %s connected to server", add_slots_group_client_.getService().c_str());
-  
+
   ROS_INFO("Waiting for: %s server", add_slots_client_.getService().c_str());
   add_slots_client_.waitForExistence();
   ROS_INFO("Client %s connected to server", add_slots_client_.getService().c_str());
@@ -490,14 +480,14 @@ bool OutboundPlaceFromParam::readSlotsGroupFromParam()
     if (!add_slots_group_client_.call(add_slots_group_srv))
       return false;
 
-    ROS_INFO("Added %lu slots groups.", slots_group.size());  
+    ROS_INFO("Added %lu slots groups.", slots_group.size());
   }
   else
   {
     ROS_WARN("Can't add any slots group.");
     return false;
   }
-    
+
   return true;
 }
 
@@ -594,7 +584,7 @@ bool OutboundPlaceFromParam::readSlotsFromParam()
     tf::poseEigenToMsg(T_w_slot,slot_.location.pose);
     tf::poseEigenToMsg(T_slot_approach,slot_.location.approach_relative_pose);
     tf::poseEigenToMsg(T_slot_approach,slot_.location.leave_relative_pose);
-    
+
     std::vector<manipulation_msgs::Slot> slot_vct;
     slot_vct.push_back(slot_);
 
@@ -635,7 +625,7 @@ bool GoToLocationFromParam::readLocationsFromParam()
   ROS_INFO("There are %d objects",go_to_locations.size());
 
   for (int i=0; i < go_to_locations.size(); i++)
-  {   
+  {
     XmlRpc::XmlRpcValue single_location = go_to_locations[i];
     if( single_location.getType() != XmlRpc::XmlRpcValue::TypeStruct)
     {
@@ -711,7 +701,7 @@ bool GoToLocationFromParam::readLocationsFromParam()
     Eigen::Affine3d T_w_tool = T_w_frame * T_frame_tool;
 
     manipulation_msgs::Location goto_location;
-    
+
     goto_location.name = name;
     goto_location.frame = "world";
     tf::poseEigenToMsg(T_w_tool,goto_location.pose);
@@ -722,5 +712,3 @@ bool GoToLocationFromParam::readLocationsFromParam()
 }
 
 }
-
-

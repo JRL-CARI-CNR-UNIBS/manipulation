@@ -26,7 +26,7 @@ bool addLocation( const ros::NodeHandle& nh,
       return false;
     
     if (add_locations.response.results != manipulation_msgs::AddLocations::Response::Error)
-      ROS_INFO("Added the location %s to the location manager.",location.name.c_str());
+      ROS_DEBUG("Added the location %s to the location manager.",location.name.c_str());
   }
   else
   {

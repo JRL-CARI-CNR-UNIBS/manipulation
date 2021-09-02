@@ -459,17 +459,19 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
 
         Eigen::Affine3d T_w_loc=m_chains.at(group.first)->getTransformation(sols.at(0));
         rosdyn::getFrameDistance(T_w_loc,location_ptr->m_T_w_location,error);
-        if (error.norm()>1e-5)
+        if (error.head(3).norm()>1e-4 || error.tail(3).norm()>1e-3)
         {
-          ROS_ERROR("Parameter %s/%s/%s reprensent a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+          ROS_ERROR("Parameter %s/%s/%s reprensents a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+          ROS_ERROR_STREAM("\nT_w_location = \n"<<location_ptr->m_T_w_location.matrix()<<"\nT_w_location from param =\n"<<T_w_loc.matrix());
+          ROS_ERROR_STREAM("\nerror = " << error.transpose());
           compute_ik=true;
         }
 
         Eigen::Affine3d T_w_approach=m_chains.at(group.first)->getTransformation(approach_sols.at(0));
         rosdyn::getFrameDistance(T_w_approach,location_ptr->m_T_w_approach,error);
-        if (error.norm()>1e-5)
+        if (error.head(3).norm()>1e-4 || error.tail(3).norm()>1e-3)
         {
-          ROS_ERROR("Parameter %s/%s/approach/%s reprensent a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+          ROS_ERROR("Parameter %s/%s/approach/%s reprensents a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
           compute_ik=true;
         }
 
