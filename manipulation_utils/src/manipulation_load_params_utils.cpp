@@ -273,7 +273,6 @@ bool InboundPickFromParam::readObjectFromParam()
       prev_obj_type = type;
     }
 
-    add_objs_srv.at(box_name)->request.box_name = box_name;
     manipulation_msgs::Object obj;
     obj.type = type;
     obj.name = type + "_" + std::to_string(obj_type_idx++);
@@ -415,7 +414,7 @@ bool InboundPickFromParam::readObjectFromParam()
 
       grasp_obj.location.name = obj.name + "_gl"+std::to_string(ig);
       grasp_obj.location.frame = "world";
-
+    
       tf::poseEigenToMsg(T_w_grasp,grasp_obj.location.pose);
       tf::poseEigenToMsg(T_grasp_approach,grasp_obj.location.approach_relative_pose);
       tf::poseEigenToMsg(T_grasp_approach,grasp_obj.location.leave_relative_pose);
@@ -424,6 +423,8 @@ bool InboundPickFromParam::readObjectFromParam()
       obj.grasping_locations.push_back(grasp_obj);
     }
 
+    add_objs_srv.at(box_name)->request.box_name = box_name;
+    add_objs_srv.at(box_name)->request.add_objects.clear();
     add_objs_srv.at(box_name)->request.add_objects.push_back(obj);
     if (!add_objs_client_.call(*add_objs_srv.at(box_name)))
     {
@@ -454,10 +455,7 @@ bool InboundPickFromParam::readObjectFromParam()
       srv.request.objects.clear();
     }
   }
-
-  //for (const std::pair<std::string,std::shared_ptr<manipulation_msgs::AddObjects>>& p: add_objs_srv)
-  //  add_objs_client_.call(*p.second);
-
+  
   return true;
 }
 
