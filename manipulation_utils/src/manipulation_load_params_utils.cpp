@@ -194,6 +194,10 @@ bool InboundPickFromParam::readBoxesFromParam()
 
     Eigen::Affine3d T_box_approach = T_w_box.inverse() * T_w_approach;  
 
+    ROS_FATAL_STREAM("T_w_frame\n"<<T_w_frame.matrix());
+    ROS_FATAL_STREAM("T_w_box\n"<<T_w_box.matrix());
+    ROS_FATAL_STREAM("T_w_approach\n"<<T_w_approach.matrix());
+
     manipulation_msgs::Box box_;
     box_.name = box_name;
     box_.location.name = box_.name;
@@ -322,6 +326,8 @@ bool InboundPickFromParam::readObjectFromParam()
 
     Eigen::Affine3d T_w_object = T_w_frame * T_frame_object;
 
+    ROS_FATAL_STREAM("T_w_frame\n"<<T_w_frame.matrix());
+    ROS_FATAL_STREAM("T_w_object\n"<<T_w_object.matrix());
     manipulation_msgs::Grasp grasp_obj;
 
     if( !type_config.hasMember("grasp_poses") )
