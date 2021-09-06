@@ -38,6 +38,9 @@ namespace manipulation
   Eigen::Affine3d poseFromParam(const XmlRpc::XmlRpcValue& config);
   Eigen::Affine3d poseFromTF(tf::TransformListener& listener, const std::string& frame);
 
+  manipulation_msgs::Grasp graspFromParam(const XmlRpc::XmlRpcValue& config);
+  manipulation_msgs::Object objectFromParam(const XmlRpc::XmlRpcValue& config);
+
   bool loadObjectGrapFromParam(const ros::NodeHandle& nh,
                                    const XmlRpc::XmlRpcValue& config,
                                    const Eigen::Affine3d &T_w_frame,

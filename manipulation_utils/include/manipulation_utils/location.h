@@ -64,6 +64,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rosparam_utilities/rosparam_utilities.h>
 
 #include <tf_conversions/tf_eigen.h>
+#include <tf/transform_listener.h>
+#include <tf/transform_broadcaster.h>
 
 #define N_MAX_ITER 20000
 #define N_ITER 200
@@ -84,7 +86,7 @@ public:
            const Eigen::Affine3d& T_w_approach,
            const Eigen::Affine3d& T_w_leave);
 
-  Location(const manipulation_msgs::Location& msg);
+  Location(const manipulation_msgs::Location& msg, const Eigen::Affine3d& T_w_frame);
 
   friend class LocationManager;
 
@@ -109,6 +111,7 @@ protected:
   Eigen::Affine3d m_T_w_location;  // world <- location
   Eigen::Affine3d m_T_w_approach;  // world <- approach
   Eigen::Affine3d m_T_w_leave;    // world <- return
+
 
   std::map<std::string,std::vector<Eigen::VectorXd>> m_location_configurations;
   std::map<std::string,std::vector<Eigen::VectorXd>> m_approach_location_configurations;
@@ -187,6 +190,10 @@ protected:
   ros::ServiceServer m_remove_locations_srv;
   ros::ServiceServer m_list_locations_srv;
   ros::ServiceServer m_get_location_ik_srv;
+
+  tf::TransformListener m_listener;
+  tf::TransformBroadcaster m_broadcaster;
+  std::string m_world_frame="world";
 
   bool addLocationFromMsg(const manipulation_msgs::Location& location);
 

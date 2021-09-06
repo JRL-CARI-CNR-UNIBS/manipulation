@@ -45,9 +45,11 @@ Location::Location( const std::string& name,
 
 }
 
-Location::Location(const manipulation_msgs::Location &msg)
+Location::Location(const manipulation_msgs::Location &msg, const Eigen::Affine3d &T_w_frame)
 {
-  tf::poseMsgToEigen(msg.pose,m_T_w_location);
+  Eigen::Affine3d T_frame_location;
+  tf::poseMsgToEigen(msg.pose,T_frame_location);
+  m_T_w_location=T_w_frame*T_frame_location;
 
   Eigen::Affine3d T_location_approach;
   tf::poseMsgToEigen(msg.approach_relative_pose,T_location_approach);
@@ -399,13 +401,45 @@ bool LocationManager::getLocationIkCb(manipulation_msgs::GetLocationIkSolution::
 
 bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& location)
 {
-  LocationPtr location_ptr(new Location(location));
-
-  if ( m_locations.find(location_ptr->m_name) != m_locations.end() )
+  if ( m_locations.find(location.name) != m_locations.end() )
   {
-    ROS_WARN("Location %s is already present",location_ptr->m_name.c_str());
+    ROS_WARN("Location %s is already present",location.name.c_str());
     return false;
   }
+
+
+  tf::StampedTransform transform;
+  ros::Time t0 = ros::Time::now();
+  if (!m_listener.waitForTransform(m_world_frame,location.frame,t0,ros::Duration(10)))
+  {
+    ROS_WARN("Unable to find a transform from %s to %s", m_world_frame.c_str(), location.frame.c_str());
+    return false;
+  }
+
+  try
+  {
+    m_listener.lookupTransform(m_world_frame, location.frame, t0, transform);
+  }
+  catch (tf::TransformException ex)
+  {
+    ROS_ERROR("Exception %s",ex.what());
+    return false;
+  }
+
+  Eigen::Affine3d T_w_frame;
+  tf::poseTFToEigen(transform,T_w_frame);
+
+  LocationPtr location_ptr(new Location(location,T_w_frame));
+
+  tf::poseEigenToTF(location_ptr->getLocation(),transform);
+  m_broadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), m_world_frame, location.name));
+
+  tf::poseEigenToTF(location_ptr->getLeave(),transform);
+  m_broadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), m_world_frame, location.name+"_leave"));
+
+  tf::poseEigenToTF(location_ptr->getApproach(),transform);
+  m_broadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), m_world_frame, location.name+"_approach"));
+
 
   bool get_ik_group = false;
 
@@ -508,9 +542,10 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
         leave_sols.push_back(tmp_leave_sols.at(0));
       }
 
-      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/"+group.first),sols);
-      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/approach/"+group.first),approach_sols);
-      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/leave/"+group.first),leave_sols);
+      std::string what;
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/"+group.first),sols,what);
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/approach/"+group.first),approach_sols,what);
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/leave/"+group.first),leave_sols,what);
     }
 
 

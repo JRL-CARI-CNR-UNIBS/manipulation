@@ -152,9 +152,16 @@ namespace manipulation
   bool PickObjects::addObjectsCb(manipulation_msgs::AddObjects::Request &req,
                                  manipulation_msgs::AddObjects::Response &res)
   {
-
-    if (m_boxes.find(req.box_name) == m_boxes.end())
+    bool find_box=false;
+    if (req.box_name.empty())
     {
+      ROS_ERROR("TO BE IMPLEMENTED!!!!");
+      find_box=true;
+      assert(0);
+    }
+    else if (m_boxes.find(req.box_name) == m_boxes.end())
+    {
+
       ROS_ERROR("Can't add objects the box %s is not available.", req.box_name.c_str());
       res.results = manipulation_msgs::AddObjects::Response::BoxNotFound;
       return false;
@@ -229,7 +236,6 @@ namespace manipulation
         object_types.push_back(object->getType());
         object_names.push_back(object->getName());
       }
-
       box_names.push_back(it->first);
     }
 

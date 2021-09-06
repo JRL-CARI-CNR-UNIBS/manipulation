@@ -103,6 +103,77 @@ bool poseFromParam(const XmlRpc::XmlRpcValue& config, Eigen::Affine3d& T)
 }
 
 
+
+manipulation_msgs::Grasp graspFromParam(const XmlRpc::XmlRpcValue& config)
+{
+  manipulation_msgs::Grasp grasp;
+  if (not (config.hasMember("position") &&
+           config.hasMember("quaternion") &&
+           config.hasMember("approach_distance") &&
+           config.hasMember("tool")))
+  {
+    ROS_WARN_STREAM("Wrong grasp format:\n" << config);
+    throw std::invalid_argument("wrong grasp format");
+  }
+  assert(config["position"].size()==3);
+  assert(config["quaternion"].size()==4);
+  assert(config["approach_distance"].size()==4);
+
+  std::vector<double> position;
+  rosparam_utilities::getParam(config,"position",position);
+  grasp.location.pose.position.x=position.at(0);
+  grasp.location.pose.position.y=position.at(1);
+  grasp.location.pose.position.z=position.at(2);
+
+  std::vector<double> quaternion;
+  rosparam_utilities::getParam(config,"quaternion",quaternion);
+  grasp.location.pose.orientation.x=quaternion.at(0);
+  grasp.location.pose.orientation.y=quaternion.at(1);
+  grasp.location.pose.orientation.z=quaternion.at(2);
+  grasp.location.pose.orientation.w=quaternion.at(3);
+
+  std::vector<double> approach_distance;
+  rosparam_utilities::getParam(config,"approach_distance",approach_distance);
+  grasp.location.approach_relative_pose.position.x=approach_distance.at(0);
+  grasp.location.approach_relative_pose.position.y=approach_distance.at(1);
+  grasp.location.approach_relative_pose.position.z=approach_distance.at(2);
+  grasp.location.approach_relative_pose.orientation.x=0.0;
+  grasp.location.approach_relative_pose.orientation.y=0.0;
+  grasp.location.approach_relative_pose.orientation.z=0.0;
+  grasp.location.approach_relative_pose.orientation.w=1.0;
+
+  grasp.location.leave_relative_pose=grasp.location.approach_relative_pose;
+  grasp.tool_name=rosparam_utilities::toString( config["tool"] );
+  return grasp;
+}
+
+manipulation_msgs::Object objectFromParam(const XmlRpc::XmlRpcValue& config)
+{
+  manipulation_msgs::Object object;
+  if (not (config.hasMember("type") &&
+           config.hasMember("grasp_poses")))
+  {
+    ROS_WARN_STREAM("Wrong object format:\n" << config);
+    throw std::invalid_argument("wrong object format");
+  }
+  object.type=rosparam_utilities::toString( config["type"] );
+  if (config.hasMember("name"))
+    object.name=rosparam_utilities::toString( config["name"] );
+
+  XmlRpc::XmlRpcValue graspes=config["grasp_poses"];
+  if (graspes.getType()!=XmlRpc::XmlRpcValue::TypeArray)
+  {
+    ROS_WARN_STREAM("Wrong object format:\n" << config);
+    throw std::invalid_argument("wrong object format");
+  }
+  for (int idx=0;idx<graspes.size();idx++)
+  {
+    XmlRpc::XmlRpcValue& grasp=graspes[idx];
+    object.grasping_locations.push_back(graspFromParam(grasp));
+  }
+  return object;
+}
+
 InboundPickFromParam::InboundPickFromParam( const ros::NodeHandle &nh):
                                             nh_(nh)
 {
@@ -228,6 +299,25 @@ bool InboundPickFromParam::readBoxesFromParam()
 bool InboundPickFromParam::readObjectFromParam()
 {
 
+  XmlRpc::XmlRpcValue type_config;
+  if (!nh_.getParam("manipulation_object_types",type_config))
+  {
+    ROS_WARN("Type manipulation_object_types does not exist");
+    return false;
+  }
+  if (type_config.getType()!=XmlRpc::XmlRpcValue::TypeArray)
+  {
+    ROS_ERROR("manipulation_object_types is not a vector of types");
+    return false;
+  }
+  std::map<std::string,manipulation_msgs::Object> types;
+  for (int itype=0;itype<type_config.size();itype++)
+  {
+    manipulation_msgs::Object obj=objectFromParam(type_config[itype]);
+    types.insert(std::pair<std::string,manipulation_msgs::Object>(obj.type,obj));
+  }
+
+
   XmlRpc::XmlRpcValue config;
   if (!nh_.getParam("/inbound/objects",config))
   {
@@ -240,7 +330,7 @@ bool InboundPickFromParam::readObjectFromParam()
     ROS_ERROR("The param is not a list of objects" );
     return false;
   }
-  ROS_INFO("There are %d objects",config.size());
+  ROS_DEBUG("There are %d objects",config.size());
 
   std::map<std::string,std::shared_ptr<manipulation_msgs::AddObjects>> add_objs_srv;
 
@@ -258,13 +348,12 @@ bool InboundPickFromParam::readObjectFromParam()
       continue;
     }
     std::string type = rosparam_utilities::toString(object_config["type"]);
-
-    XmlRpc::XmlRpcValue type_config;
-    if (!nh_.getParam("/manipulation_objects_geometry/" + type,type_config))
+    if (types.find(type)==types.end())
     {
-      ROS_WARN("Type /manipulation_objects_geometry/%s does not exist",type.c_str());
+      ROS_WARN("The element #%d has a unrecognized type '%s'", i,type.c_str());
       continue;
     }
+
 
     if( !object_config.hasMember("inbound") )
     {
@@ -276,8 +365,8 @@ bool InboundPickFromParam::readObjectFromParam()
     if (add_objs_srv.count(box_name)==0)
       add_objs_srv.insert(std::pair<std::string,std::shared_ptr<manipulation_msgs::AddObjects>>(box_name,std::make_shared<manipulation_msgs::AddObjects>()));
 
-    manipulation_msgs::Object obj;
-    obj.type = type;
+
+    manipulation_msgs::Object obj=types.at(type);
 
     if( !object_config.hasMember("frame") )
     {
@@ -289,20 +378,39 @@ bool InboundPickFromParam::readObjectFromParam()
     ROS_DEBUG("Object type: %s, box name: %s, frame: %s", type.c_str(),box_name.c_str(),frame_name.c_str());
 
 
-    std::vector<double> approach_distance_d;
-    if( !rosparam_utilities::getParam(object_config,"approach_distance",approach_distance_d) )
+    if( object_config.hasMember("approach_distance") )
     {
-      ROS_WARN("Object %s has not the field 'approach_distance'",obj.type.c_str());
-      return false;
+      std::vector<double> approach_distance;
+      if( !rosparam_utilities::getParam(object_config,"approach_distance",approach_distance) )
+      {
+        ROS_WARN("Object %s has not the field 'approach_distance'",obj.type.c_str());
+        return false;
+      }
+      assert(approach_distance_d.size()==3);
+      for (manipulation_msgs::Grasp& g: obj.grasping_locations)
+      {
+        g.location.approach_relative_pose.position.x=approach_distance.at(0);
+        g.location.approach_relative_pose.position.y=approach_distance.at(1);
+        g.location.approach_relative_pose.position.z=approach_distance.at(2);
+      }
     }
-    assert(approach_distance_d.size()==3);
-    Eigen::Vector3d approach_distance_in_frame;
-    approach_distance_in_frame(0) = approach_distance_d.at(0);
-    approach_distance_in_frame(1) = approach_distance_d.at(1);
-    approach_distance_in_frame(2) = approach_distance_d.at(2);
 
-
-    Eigen::Affine3d T_w_frame=poseFromTF(listener_,frame_name);
+    if( object_config.hasMember("leave_distance") )
+    {
+      std::vector<double> leave_distance;
+      if( !rosparam_utilities::getParam(object_config,"leave_distance",leave_distance) )
+      {
+        ROS_WARN("Object %s has not the field 'leave_distance'",obj.type.c_str());
+        return false;
+      }
+      assert(approach_distance_d.size()==3);
+      for (manipulation_msgs::Grasp& g: obj.grasping_locations)
+      {
+        g.location.leave_relative_pose.position.x=leave_distance.at(0);
+        g.location.leave_relative_pose.position.y=leave_distance.at(1);
+        g.location.leave_relative_pose.position.z=leave_distance.at(2);
+      }
+    }
 
     Eigen::Affine3d T_frame_object;
     if (not poseFromParam(object_config,T_frame_object))
@@ -311,12 +419,9 @@ bool InboundPickFromParam::readObjectFromParam()
       continue;
     }
 
-    Eigen::Affine3d T_w_object = T_w_frame * T_frame_object;
-
-
     object_loader_msgs::Object col_obj;
-    tf::poseEigenToMsg(T_w_object,col_obj.pose.pose);
-    col_obj.pose.header.frame_id = "world";
+    tf::poseEigenToMsg(T_frame_object,col_obj.pose.pose);
+    col_obj.pose.header.frame_id = frame_name;
     col_obj.object_type = type;
     object_loader_msgs::AddObjects srv;
     srv.request.objects.push_back(col_obj);
@@ -333,57 +438,10 @@ bool InboundPickFromParam::readObjectFromParam()
     }
     obj.name=srv.response.ids.at(0);
 
-    manipulation_msgs::Grasp grasp_obj;
-
-    if( !type_config.hasMember("grasp_poses") )
+    for (manipulation_msgs::Grasp& g: obj.grasping_locations)
     {
-      ROS_WARN("The element #%d has not the field 'box'", i);
-      continue;
-    }
-    if (type_config["grasp_poses"].getType() != XmlRpc::XmlRpcValue::TypeArray)
-    {
-      ROS_ERROR("The param is not a list of grasping poses" );
-      return false;
-    }
-    for (int ig=0;ig<type_config["grasp_poses"].size();ig++)
-    {
-      XmlRpc::XmlRpcValue pose = type_config["grasp_poses"][ig];
-
-      if( !pose.hasMember("tool") )
-      {
-        ROS_WARN("The element #%d has not the field 'tool'", ig);
-        continue;
-      }
-      std::string tool_name = rosparam_utilities::toString(pose["tool"]);
-
-
-      Eigen::Affine3d T_obj_grasp;
-      if (not poseFromParam(pose,T_obj_grasp))
-      {
-        ROS_WARN("The grasp pose #%d has not the field 'position' and/or 'quaternion'", ig);
-        continue;
-      }
-
-      Eigen::Affine3d T_w_grasp = T_w_object * T_obj_grasp;
-
-      Eigen::Vector3d approach_distance_in_world = T_w_frame.linear() * approach_distance_in_frame;
-
-      Eigen::Affine3d T_w_approach = T_w_grasp;
-      T_w_approach.translation() += approach_distance_in_world;
-
-      Eigen::Affine3d T_grasp_approach = T_w_grasp.inverse() * T_w_approach;
-
-      grasp_obj.location.name = obj.name + "_grasp"+std::to_string(ig);
-      grasp_obj.location.frame = "world";
-
-      tf::poseEigenToMsg(T_w_grasp,grasp_obj.location.pose);
-      tf::poseEigenToMsg(T_grasp_approach,grasp_obj.location.approach_relative_pose);
-      tf::poseEigenToMsg(T_grasp_approach,grasp_obj.location.leave_relative_pose);
-
-      grasp_obj.tool_name = tool_name;
-      obj.grasping_locations.push_back(grasp_obj);
-    }
-
+      g.location.frame=obj.name;
+    } // locations are in frame name!!!
 
     // if manipulator is unable to manage the object, color it red
     object_loader_msgs::ChangeColor color_srv;
