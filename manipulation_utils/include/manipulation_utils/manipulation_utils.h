@@ -256,11 +256,11 @@ namespace manipulation
   class SlotsGroup 
   {
   protected:
-    bool m_int_state;
     std::string m_group_name;
-    int m_group_size;
 
     ros::NodeHandle m_nh;
+    int m_group_size;
+    bool m_int_state;
 
     std::map<std::string,SlotPtr> m_slots;
 

@@ -152,6 +152,7 @@ namespace manipulation
   bool PickObjects::addObjectsCb(manipulation_msgs::AddObjects::Request &req,
                                  manipulation_msgs::AddObjects::Response &res)
   {
+
     bool find_box=false;
     if (req.box_name.empty())
     {

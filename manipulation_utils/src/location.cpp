@@ -323,7 +323,33 @@ bool LocationManager::init()
   m_get_location_ik_srv  = m_nh.advertiseService("get_location_ik",  &LocationManager::getLocationIkCb,   this);
   ROS_INFO("Location Manager initialized.");
 
+  m_run_tf_thread=true;
+  m_th_thread=std::thread(&LocationManager::tfThread,this);
   return true;
+}
+
+LocationManager::~LocationManager()
+{
+  m_run_tf_thread=false;
+  if (m_th_thread.joinable())
+    m_th_thread.join();
+}
+
+void LocationManager::tfThread()
+{
+  ros::Rate lp(50);
+  while (m_run_tf_thread)
+  {
+    tf_mutex.lock();
+    for (const std::pair<std::string,tf::StampedTransform>& p: m_transforms)
+      m_broadcaster.sendTransform(p.second);
+    for (const std::pair<std::string,tf::StampedTransform>& p: m_approach_transforms)
+      m_broadcaster.sendTransform(p.second);
+    for (const std::pair<std::string,tf::StampedTransform>& p: m_leave_transforms)
+      m_broadcaster.sendTransform(p.second);
+    tf_mutex.unlock();
+    lp.sleep();
+  }
 }
 
 bool LocationManager::addLocationsCb( manipulation_msgs::AddLocations::Request& req,
@@ -401,24 +427,40 @@ bool LocationManager::getLocationIkCb(manipulation_msgs::GetLocationIkSolution::
 
 bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& location)
 {
+  if (location.name.empty())
+  {
+    ROS_WARN_STREAM("Location has no name..... \n" << location);
+    return false;
+  }
+
+  ROS_DEBUG("Adding location named %s",location.name.c_str());
+
   if ( m_locations.find(location.name) != m_locations.end() )
   {
-    ROS_WARN("Location %s is already present",location.name.c_str());
+    ROS_WARN("Location %s is already present. List of locations:",location.name.c_str());
+    for (const std::pair<std::string,LocationPtr>& s: m_locations)
+      ROS_WARN("- %s",s.first.c_str());
     return false;
   }
 
 
-  tf::StampedTransform transform;
-  ros::Time t0 = ros::Time::now();
-  if (!m_listener.waitForTransform(m_world_frame,location.frame,t0,ros::Duration(10)))
+  tf::StampedTransform location_transform;
+  ros::Time t0 = ros::Time(0);
+  std::string tf_error;
+  if (!m_listener.waitForTransform(m_world_frame,
+                                   location.frame,
+                                   t0,
+                                   ros::Duration(10),
+                                   ros::Duration(0.01),
+                                   &tf_error))
   {
-    ROS_WARN("Unable to find a transform from %s to %s", m_world_frame.c_str(), location.frame.c_str());
+    ROS_WARN("Unable to find a transform from %s to %s, tf error=%s", m_world_frame.c_str(), location.frame.c_str(),tf_error.c_str());
     return false;
   }
 
   try
   {
-    m_listener.lookupTransform(m_world_frame, location.frame, t0, transform);
+    m_listener.lookupTransform(m_world_frame, location.frame, t0, location_transform);
   }
   catch (tf::TransformException ex)
   {
@@ -427,18 +469,37 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
   }
 
   Eigen::Affine3d T_w_frame;
-  tf::poseTFToEigen(transform,T_w_frame);
-
+  tf::poseTFToEigen(location_transform,T_w_frame);
   LocationPtr location_ptr(new Location(location,T_w_frame));
 
-  tf::poseEigenToTF(location_ptr->getLocation(),transform);
-  m_broadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), m_world_frame, location.name));
 
-  tf::poseEigenToTF(location_ptr->getLeave(),transform);
-  m_broadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), m_world_frame, location.name+"_leave"));
+  tf::StampedTransform transform;
+  tf::poseMsgToTF(location.pose,transform);
+  transform.child_frame_id_=location.name;
+  transform.frame_id_=location.frame;
+  transform.stamp_=ros::Time::now();
 
-  tf::poseEigenToTF(location_ptr->getApproach(),transform);
-  m_broadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), m_world_frame, location.name+"_approach"));
+  tf_mutex.lock();
+  m_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
+  tf_mutex.unlock();
+
+  tf::poseMsgToTF(location.approach_relative_pose,transform);
+  transform.child_frame_id_=location.name+"_approach";
+  transform.frame_id_=location.name;
+  transform.stamp_=ros::Time::now();
+  tf_mutex.lock();
+  m_approach_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
+  tf_mutex.unlock();
+
+
+  tf::poseMsgToTF(location.leave_relative_pose,transform);
+  transform.child_frame_id_=location.name+"_leave";
+  transform.frame_id_=location.name;
+  transform.stamp_=ros::Time::now();
+  tf_mutex.lock();
+  m_leave_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
+  tf_mutex.unlock();
+
 
 
   bool get_ik_group = false;
@@ -587,6 +648,11 @@ bool LocationManager::removeLocation(const std::string& location_name)
   {
     ROS_INFO("delete_all shortcut: delete all the locations in %s",m_nh.getNamespace().c_str());
     m_locations.clear();
+    tf_mutex.lock();
+    m_transforms.clear();
+    m_approach_transforms.clear();
+    m_leave_transforms.clear();
+    tf_mutex.unlock();
     return true;
   }
 
@@ -596,6 +662,12 @@ bool LocationManager::removeLocation(const std::string& location_name)
     return false;
   }
   m_locations.erase(m_locations.find(location_name));
+
+  tf_mutex.lock();
+  m_transforms.erase(m_transforms.find(location_name));
+  m_approach_transforms.erase(m_approach_transforms.find(location_name));
+  m_leave_transforms.erase(m_leave_transforms.find(location_name));
+  tf_mutex.unlock();
   return true;
 }
 
@@ -629,7 +701,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
     moveit::planning_interface::MoveGroupInterfacePtr group = m_groups.at(group_name);
     moveit::core::JointModelGroup* jmg = m_joint_models.at(group_name);
 
-    int max_ik_goal_number = m_max_ik_goal_number.at(group_name);
+    unsigned int max_ik_goal_number = m_max_ik_goal_number.at(group_name);
 
     if (!group->startStateMonitor(2))
     {

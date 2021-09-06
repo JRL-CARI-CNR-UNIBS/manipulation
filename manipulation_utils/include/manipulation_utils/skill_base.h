@@ -57,7 +57,7 @@ namespace manipulation
       ros::Publisher m_target_pub;
       ros::ServiceClient m_set_ctrl_srv;
       
-      tf::TransformBroadcaster m_broadcaster;
+
 
       std::map<std::string,std::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>>> m_fjt_clients;
 

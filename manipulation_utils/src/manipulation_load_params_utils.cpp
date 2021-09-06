@@ -300,9 +300,9 @@ bool InboundPickFromParam::readObjectFromParam()
 {
 
   XmlRpc::XmlRpcValue type_config;
-  if (!nh_.getParam("manipulation_object_types",type_config))
+  if (!nh_.getParam("/manipulation_object_types",type_config))
   {
-    ROS_WARN("Type manipulation_object_types does not exist");
+    ROS_WARN("Type /manipulation_object_types does not exist");
     return false;
   }
   if (type_config.getType()!=XmlRpc::XmlRpcValue::TypeArray)
@@ -438,9 +438,11 @@ bool InboundPickFromParam::readObjectFromParam()
     }
     obj.name=srv.response.ids.at(0);
 
+    int igrasp=0;
     for (manipulation_msgs::Grasp& g: obj.grasping_locations)
     {
       g.location.frame=obj.name;
+      g.location.name=obj.name+"/grasp_"+std::to_string(igrasp++)+"_"+g.tool_name;
     } // locations are in frame name!!!
 
     // if manipulator is unable to manage the object, color it red

@@ -102,8 +102,19 @@ Object::Object( const ros::NodeHandle& nh,
   m_name = object.name;
   m_type = object.type;
 
-  for (const manipulation_msgs::Grasp& grasp: object.grasping_locations )
+
+  int igrasp=0;
+  std::vector<manipulation_msgs::Grasp> grasps=object.grasping_locations;
+  for (manipulation_msgs::Grasp& grasp: grasps )
   {
+    if (grasp.location.name.empty())
+      grasp.location.name=m_name+"/grasp_"+std::to_string(igrasp++)+"_"+grasp.tool_name;
+    if (grasp.location.frame.empty())
+    {
+      ROS_ERROR("grasp %s has no frame, discard",grasp.location.name.c_str());
+      continue;
+    }
+
     m_grasp.push_back(std::make_shared<manipulation::Grasp>(m_nh,grasp));
     if(!m_grasp.back()->getIntState())
     {
@@ -181,7 +192,13 @@ bool Box::addObject(const manipulation_msgs::Object& object)
 {
   if (m_objects.find(object.name) != m_objects.end())
   {
+    ROS_FATAL_STREAM("aggiungo questo oggetto\n"<<object);
+
+
     ROS_ERROR("The object: %s of the type: %s already exists in the box %s.", object.name.c_str(),object.type.c_str(),m_name.c_str());
+    ROS_ERROR("List of objects in the box");
+    for (const std::pair<std::string,ObjectPtr>& p: m_objects)
+      ROS_ERROR("- %s",p.first.c_str());
     return false;
   }
 
@@ -202,6 +219,9 @@ bool Box::addObject(const manipulation::ObjectPtr& object)
   if (m_objects.find(object->getName()) != m_objects.end())
   {
     ROS_ERROR("The object: %s of the type: %s already exists in the box %s.", object->getName().c_str(),object->getType().c_str(),m_name.c_str());
+    ROS_ERROR("List of objects in the box");
+    for (const std::pair<std::string,ObjectPtr>& p: m_objects)
+      ROS_ERROR("- %s",p.first.c_str());
     return false;
   }
 
@@ -377,7 +397,6 @@ SlotsGroup::SlotsGroup( const ros::NodeHandle& nh,
       m_slots.erase(m_slots.find(slot.name));
       continue;
     }
-
     computeGroupSize();
   }
   

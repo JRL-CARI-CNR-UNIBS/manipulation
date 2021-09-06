@@ -67,6 +67,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tf/transform_listener.h>
 #include <tf/transform_broadcaster.h>
 
+#include <thread>
 #define N_MAX_ITER 20000
 #define N_ITER 200
 #define TOLERANCE 1e-3
@@ -125,7 +126,7 @@ class LocationManager
 public:
 
   LocationManager(const ros::NodeHandle& nh);
-
+  ~LocationManager();
   bool init();
 
   bool addLocationsCb(manipulation_msgs::AddLocations::Request& req,
@@ -163,8 +164,7 @@ protected:
 
   std::mutex m_scene_mtx; 
   std::map<std::string,LocationPtr> m_locations;
-
-  robot_model::RobotModelPtr m_kinematic_model;
+   robot_model::RobotModelPtr m_kinematic_model;
   std::map<std::string,planning_pipeline::PlanningPipelinePtr> m_planning_pipeline;
   std::map<std::string,std::shared_ptr<planning_scene::PlanningScene>> m_planning_scene;
   std::map<std::string,moveit::planning_interface::MoveGroupInterfacePtr> m_groups;
@@ -193,7 +193,14 @@ protected:
 
   tf::TransformListener m_listener;
   tf::TransformBroadcaster m_broadcaster;
-  std::string m_world_frame="world";
+  std::string m_world_frame="/world";
+  std::map<std::string,tf::StampedTransform> m_transforms;
+  std::map<std::string,tf::StampedTransform> m_approach_transforms;
+  std::map<std::string,tf::StampedTransform> m_leave_transforms;
+
+  bool m_run_tf_thread;
+  std::thread m_th_thread;
+  std::mutex tf_mutex;
 
   bool addLocationFromMsg(const manipulation_msgs::Location& location);
 
@@ -218,6 +225,8 @@ protected:
           const std::vector<Eigen::VectorXd>& seed,
           std::vector<Eigen::VectorXd>& sols,
           unsigned int ntrial = N_ITER);
+
+  void tfThread();
 
 };
 
