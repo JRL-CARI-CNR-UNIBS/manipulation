@@ -152,6 +152,7 @@ public:
 
   void updatePlanningScene(const moveit_msgs::PlanningScene& scene);
 
+  LocationPtr getLocation(const std::string& location_name);
 protected:
   ros::NodeHandle m_nh;
 

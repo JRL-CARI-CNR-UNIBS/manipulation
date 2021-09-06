@@ -37,9 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace manipulation
 {
   PickObjects::PickObjects(const ros::NodeHandle &nh,
-                           const ros::NodeHandle &pnh) : m_nh(nh),
-                                                         m_pnh(pnh),
-                                                         SkillBase(nh, pnh, "pick")
+                           const ros::NodeHandle &pnh) :
+    SkillBase(nh, pnh, "pick")
   {
     // nothing to do here
   }
@@ -156,9 +155,7 @@ namespace manipulation
     bool find_box=false;
     if (req.box_name.empty())
     {
-      ROS_ERROR("TO BE IMPLEMENTED!!!!");
       find_box=true;
-      assert(0);
     }
     else if (m_boxes.find(req.box_name) == m_boxes.end())
     {
@@ -173,10 +170,29 @@ namespace manipulation
 
     for (const manipulation_msgs::Object &object : req.add_objects)
     {
-      if (!m_boxes.find(req.box_name)->second->addObject(object))
+      std::string box_name=req.box_name;
+      ObjectPtr obj=std::make_shared<Object>(m_pnh,object);
+      if (find_box)
       {
-
-//        m_boxes.erase(m_boxes.find(req.box_name));
+        double distance=std::numeric_limits<double>::infinity();
+        for (const std::pair<std::string,BoxPtr>& p: m_boxes)
+        {
+          LocationPtr box_location=getLocation(p.second->getLocationName());
+          Eigen::Vector3d box_position=box_location->getLocation().translation();
+          for (const std::string& grasp_name: obj->getGraspLocationNames())
+          {
+            Eigen::Vector3d grasp_position = getLocation(obj->getGrasp(grasp_name)->getLocationName())->getLocation().translation();
+            if ((grasp_position-box_position).norm()<distance)
+            {
+              box_name=p.first;
+              distance=(grasp_position-box_position).norm();
+            }
+          }
+        }
+      }
+      if (!m_boxes.find(box_name)->second->addObject(obj))
+      {
+        m_boxes.at(box_name)->removeObject(object.name);
       }
       else
       {
@@ -197,7 +213,6 @@ namespace manipulation
       res.added_objects = n_added_objects;
     }
 
-    ROS_INFO("\n\n\n\n\n\n\n\n HO FINITO \n\n\n\n\n\n\n\n\n");
     return objects_added;
   }
 

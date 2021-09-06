@@ -460,7 +460,7 @@ bool InboundPickFromParam::readObjectFromParam()
     add_objs_srv.at(box_name)->request.add_objects.push_back(obj);
     if (!add_objs_client_.call(*add_objs_srv.at(box_name)))
     {
-      ROS_ERROR("Something went wrong when calling the service ~/add_objects");
+      ROS_WARN("Unable to load all the object ~/add_objects");
       change_color_client_.call(color_srv);
       continue;
     }

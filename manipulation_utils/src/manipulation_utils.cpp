@@ -15,8 +15,9 @@ bool addLocation( const ros::NodeHandle& nh,
 {  
   ros::NodeHandle nh_= nh; 
   ros::ServiceClient add_locations_client = nh_.serviceClient<manipulation_msgs::AddLocations>("add_locations");
+
   add_locations_client.waitForExistence();
-  
+
   if(add_locations_client.exists())
   {
     manipulation_msgs::AddLocations add_locations;
@@ -192,9 +193,6 @@ bool Box::addObject(const manipulation_msgs::Object& object)
 {
   if (m_objects.find(object.name) != m_objects.end())
   {
-    ROS_FATAL_STREAM("aggiungo questo oggetto\n"<<object);
-
-
     ROS_ERROR("The object: %s of the type: %s already exists in the box %s.", object.name.c_str(),object.type.c_str(),m_name.c_str());
     ROS_ERROR("List of objects in the box");
     for (const std::pair<std::string,ObjectPtr>& p: m_objects)

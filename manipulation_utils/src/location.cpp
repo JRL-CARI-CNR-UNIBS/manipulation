@@ -486,33 +486,52 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
 
 
   tf::StampedTransform transform;
-  tf::poseMsgToTF(location.pose,transform);
+  geometry_msgs::Pose pose=location.pose;
+  if (pose.orientation.x==0 &&
+      pose.orientation.y==0 &&
+      pose.orientation.z==0 &&
+      pose.orientation.w==0
+            )
+    pose.orientation.w=1.0;
+  tf::poseMsgToTF(pose,transform);
   transform.child_frame_id_=location.name;
   transform.frame_id_=location.frame;
   transform.stamp_=ros::Time::now();
-  ROS_FATAL("TF of %s  %s <=== %s",location.name.c_str(),transform.frame_id_.c_str(),transform.child_frame_id_.c_str());
 
   tf_mutex.lock();
   m_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
   tf_mutex.unlock();
 
-  tf::poseMsgToTF(location.approach_relative_pose,transform);
+  pose=location.approach_relative_pose;
+  if (pose.orientation.x==0 &&
+      pose.orientation.y==0 &&
+      pose.orientation.z==0 &&
+      pose.orientation.w==0
+            )
+    pose.orientation.w=1.0;
+
+  tf::poseMsgToTF(pose,transform);
   transform.child_frame_id_=location.name+"_approach";
   transform.frame_id_=location.name;
   transform.stamp_=ros::Time::now();
   tf_mutex.lock();
   m_approach_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
   tf_mutex.unlock();
-  ROS_FATAL("TF of %s  %s <=== %s",location.name.c_str(),transform.frame_id_.c_str(),transform.child_frame_id_.c_str());
 
-  tf::poseMsgToTF(location.leave_relative_pose,transform);
+  pose=location.leave_relative_pose;
+    if (pose.orientation.x==0 &&
+        pose.orientation.y==0 &&
+        pose.orientation.z==0 &&
+        pose.orientation.w==0
+              )
+      pose.orientation.w=1.0;
+  tf::poseMsgToTF(pose,transform);
   transform.child_frame_id_=location.name+"_leave";
   transform.frame_id_=location.name;
   transform.stamp_=ros::Time::now();
   tf_mutex.lock();
   m_leave_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
   tf_mutex.unlock();
-  ROS_FATAL("TF of %s  %s <=== %s",location.name.c_str(),transform.frame_id_.c_str(),transform.child_frame_id_.c_str());
 
 
 
@@ -586,7 +605,7 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
 
         Eigen::Affine3d T_w_leave=m_chains.at(group.first)->getTransformation(leave_sols.at(0));
         rosdyn::getFrameDistance(T_w_leave,location_ptr->m_T_w_leave,error);
-        if (error.norm()>1e-5)
+        if (error.head(3).norm()>1e-4 || error.tail(3).norm()>1e-3)
         {
           ROS_ERROR("Parameter %s/%s/leave/%s reprensent a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
           compute_ik=true;
@@ -670,7 +689,6 @@ bool LocationManager::removeLocation(const std::string& location_name)
     return true;
   }
 
-  ROS_FATAL("REMOVING %s",location_name.c_str());
   if ( m_locations.find(location_name) == m_locations.end() )
   {
     ROS_WARN("Location %s is not present",location_name.c_str());
@@ -1048,6 +1066,14 @@ bool LocationManager::ik( const std::string& group_name,
   ROS_DEBUG("Found %lu solutions for the IK.", sols.size());
 
   return found;
+}
+
+
+LocationPtr LocationManager::getLocation(const std::string& location_name)
+{
+  if( m_locations.find(location_name)==m_locations.end())
+    return NULL;
+  return m_locations.at(location_name);
 }
 
 void LocationManager::updatePlanningScene(const moveit_msgs::PlanningScene& scene)

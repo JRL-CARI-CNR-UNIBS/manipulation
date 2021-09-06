@@ -48,8 +48,7 @@ namespace manipulation
   {
     protected:
 
-      ros::NodeHandle m_nh;
-      ros::NodeHandle m_pnh; 
+      ros::NodeHandle m_pnh;
 
       std::string m_skill_name;
       std::map<std::string,double> m_fjt_result;

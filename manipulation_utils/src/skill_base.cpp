@@ -40,10 +40,9 @@ namespace manipulation
   SkillBase::SkillBase( const ros::NodeHandle& nh,
                         const ros::NodeHandle& pnh,
                         const std::string& skill_name):
-                        m_nh(nh),
+                        LocationManager(pnh),
                         m_pnh(pnh),
-                        m_skill_name(skill_name),
-                        LocationManager(pnh)
+                        m_skill_name(skill_name)
   {
     // nothing to do ...
   }
