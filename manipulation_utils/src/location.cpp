@@ -342,11 +342,23 @@ void LocationManager::tfThread()
   {
     tf_mutex.lock();
     for (const std::pair<std::string,tf::StampedTransform>& p: m_transforms)
-      m_broadcaster.sendTransform(p.second);
+    {
+      tf::StampedTransform transform(p.second);
+      transform.stamp_=ros::Time::now();
+      m_broadcaster.sendTransform(transform);
+    }
     for (const std::pair<std::string,tf::StampedTransform>& p: m_approach_transforms)
-      m_broadcaster.sendTransform(p.second);
+    {
+      tf::StampedTransform transform(p.second);
+      transform.stamp_=ros::Time::now();
+      m_broadcaster.sendTransform(transform);
+    }
     for (const std::pair<std::string,tf::StampedTransform>& p: m_leave_transforms)
-      m_broadcaster.sendTransform(p.second);
+    {
+      tf::StampedTransform transform(p.second);
+      transform.stamp_=ros::Time::now();
+      m_broadcaster.sendTransform(transform);
+    }
     tf_mutex.unlock();
     lp.sleep();
   }
@@ -478,6 +490,7 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
   transform.child_frame_id_=location.name;
   transform.frame_id_=location.frame;
   transform.stamp_=ros::Time::now();
+  ROS_FATAL("TF of %s  %s <=== %s",location.name.c_str(),transform.frame_id_.c_str(),transform.child_frame_id_.c_str());
 
   tf_mutex.lock();
   m_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
@@ -490,7 +503,7 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
   tf_mutex.lock();
   m_approach_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
   tf_mutex.unlock();
-
+  ROS_FATAL("TF of %s  %s <=== %s",location.name.c_str(),transform.frame_id_.c_str(),transform.child_frame_id_.c_str());
 
   tf::poseMsgToTF(location.leave_relative_pose,transform);
   transform.child_frame_id_=location.name+"_leave";
@@ -499,6 +512,7 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
   tf_mutex.lock();
   m_leave_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
   tf_mutex.unlock();
+  ROS_FATAL("TF of %s  %s <=== %s",location.name.c_str(),transform.frame_id_.c_str(),transform.child_frame_id_.c_str());
 
 
 
@@ -656,11 +670,14 @@ bool LocationManager::removeLocation(const std::string& location_name)
     return true;
   }
 
+  ROS_FATAL("REMOVING %s",location_name.c_str());
   if ( m_locations.find(location_name) == m_locations.end() )
   {
     ROS_WARN("Location %s is not present",location_name.c_str());
     return false;
   }
+
+
   m_locations.erase(m_locations.find(location_name));
 
   tf_mutex.lock();

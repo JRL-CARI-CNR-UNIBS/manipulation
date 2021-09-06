@@ -174,7 +174,10 @@ namespace manipulation
     for (const manipulation_msgs::Object &object : req.add_objects)
     {
       if (!m_boxes.find(req.box_name)->second->addObject(object))
-        m_boxes.erase(m_boxes.find(req.box_name));
+      {
+
+//        m_boxes.erase(m_boxes.find(req.box_name));
+      }
       else
       {
         ROS_DEBUG("Added the object %s of the type %s in box %s", object.name.c_str(), object.type.c_str(), req.box_name.c_str());
@@ -194,6 +197,7 @@ namespace manipulation
       res.added_objects = n_added_objects;
     }
 
+    ROS_INFO("\n\n\n\n\n\n\n\n HO FINITO \n\n\n\n\n\n\n\n\n");
     return objects_added;
   }
 
