@@ -55,7 +55,8 @@ namespace manipulation
     m_list_objects_srv = m_pnh.advertiseService("list_objects", &PickObjects::listObjectsCb, this);
     m_reset_srv = m_pnh.advertiseService("inboud/reset_box", &PickObjects::resetBoxesCb, this);
 
-    m_attach_object_srv = m_nh.serviceClient<object_loader_msgs::AttachObject>("attach_object_to_link");
+
+    m_attach_object_srv = m_nh.serviceClient<object_loader_msgs::AttachObject>("/attach_object_to_link");
     m_attach_object_srv.waitForExistence();
 
     if (m_group_names.size() > 0)
