@@ -469,11 +469,11 @@ bool SlotsGroup::findSlot(const std::string& slot_name)
 {
   if (m_slots.find(slot_name) == m_slots.end())
   {
-    ROS_INFO("Can't find the slot %s in the group %s", slot_name.c_str(), m_group_name.c_str());
+    ROS_DEBUG("Can't find the slot %s in the group %s", slot_name.c_str(), m_group_name.c_str());
     return false;
   }
 
-  ROS_INFO("Found the slot %s in the group %s", slot_name.c_str(), m_group_name.c_str());
+  ROS_DEBUG("Found the slot %s in the group %s", slot_name.c_str(), m_group_name.c_str());
 
   return true;
 }

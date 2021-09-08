@@ -474,15 +474,15 @@ namespace manipulation
         return;
       }
 
-      tf::Transform transform;
-      tf::transformEigenToTF(m_locations.at(selected_slot->getLocationName())->getApproach(), transform);
-      m_tf.insert(std::pair<std::string,tf::Transform>("place/approach/"+selected_slot->getName(),transform));
+//      tf::Transform transform;
+//      tf::transformEigenToTF(m_locations.at(selected_slot->getLocationName())->getApproach(), transform);
+//      m_tf.insert(std::pair<std::string,tf::Transform>("place/approach/"+selected_slot->getName(),transform));
 
-      tf::transformEigenToTF(m_locations.at(selected_slot->getLocationName())->getLocation(), transform);
-      m_tf.insert(std::pair<std::string,tf::Transform>("place/to/"+selected_slot->getName(),transform));
+//      tf::transformEigenToTF(m_locations.at(selected_slot->getLocationName())->getLocation(), transform);
+//      m_tf.insert(std::pair<std::string,tf::Transform>("place/to/"+selected_slot->getName(),transform));
 
-      tf::transformEigenToTF(m_locations.at(selected_slot->getLocationName())->getLeave(), transform);
-      m_tf.insert(std::pair<std::string,tf::Transform>("place/leave/"+selected_slot->getName(),transform));
+//      tf::transformEigenToTF(m_locations.at(selected_slot->getLocationName())->getLeave(), transform);
+//      m_tf.insert(std::pair<std::string,tf::Transform>("place/leave/"+selected_slot->getName(),transform));
 
 
       t_planning = ros::Time::now();
@@ -550,6 +550,7 @@ namespace manipulation
         return;
       }
       ROS_INFO("Group %s: detached object %s ", group_name.c_str(), detach_srv.request.obj_id.c_str());
+
 
       // Set the desired tool behaviour 
       if(!goal->property_exec_id.empty())
