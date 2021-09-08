@@ -27,9 +27,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <ros/ros.h>
+#include <Eigen/Geometry>
+#include <tf/transform_listener.h>
+
+#include <manipulation_msgs/AddObjects.h>
 
 namespace manipulation 
 {
+
+  Eigen::Affine3d poseFromParam(const XmlRpc::XmlRpcValue& config);
+  Eigen::Affine3d poseFromTF(tf::TransformListener& listener, const std::string& frame);
+
+  manipulation_msgs::Grasp graspFromParam(const XmlRpc::XmlRpcValue& config);
+  manipulation_msgs::Object objectFromParam(const XmlRpc::XmlRpcValue& config);
+
+  bool loadObjectGrapFromParam(const ros::NodeHandle& nh,
+                                   const XmlRpc::XmlRpcValue& config,
+                                   const Eigen::Affine3d &T_w_frame,
+                                   const Eigen::Affine3d &T_w_object,
+                                   manipulation_msgs::Object& object);
+
   class InboundPickFromParam
   {
   protected:
@@ -38,6 +55,8 @@ namespace manipulation
     ros::ServiceClient add_box_client_;
     ros::ServiceClient add_objs_client_;
     ros::ServiceClient add_objs_to_scene_client_;
+    ros::ServiceClient change_color_client_;
+    tf::TransformListener listener_;
 
   public:
     InboundPickFromParam(const ros::NodeHandle& nh);
@@ -49,7 +68,8 @@ namespace manipulation
   {
   protected:
     ros::NodeHandle nh_;
-    
+    tf::TransformListener listener_;
+
     ros::ServiceClient add_slots_group_client_;
     ros::ServiceClient add_slots_client_;
 

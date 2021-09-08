@@ -15,8 +15,9 @@ bool addLocation( const ros::NodeHandle& nh,
 {  
   ros::NodeHandle nh_= nh; 
   ros::ServiceClient add_locations_client = nh_.serviceClient<manipulation_msgs::AddLocations>("add_locations");
+
   add_locations_client.waitForExistence();
-  
+
   if(add_locations_client.exists())
   {
     manipulation_msgs::AddLocations add_locations;
@@ -26,7 +27,7 @@ bool addLocation( const ros::NodeHandle& nh,
       return false;
     
     if (add_locations.response.results != manipulation_msgs::AddLocations::Response::Error)
-      ROS_INFO("Added the location %s to the location manager.",location.name.c_str());
+      ROS_DEBUG("Added the location %s to the location manager.",location.name.c_str());
   }
   else
   {
@@ -78,7 +79,7 @@ Grasp::Grasp( const ros::NodeHandle& nh,
   
   m_tool_name = grasp.tool_name;
   m_location_name = grasp.location.name;
-  ROS_INFO("Added the new location %s to the location manager.",grasp.location.name.c_str());
+  ROS_DEBUG("Added the new location %s to the location manager.",grasp.location.name.c_str());
 
   return;
 }
@@ -102,8 +103,19 @@ Object::Object( const ros::NodeHandle& nh,
   m_name = object.name;
   m_type = object.type;
 
-  for (const manipulation_msgs::Grasp& grasp: object.grasping_locations )
+
+  int igrasp=0;
+  std::vector<manipulation_msgs::Grasp> grasps=object.grasping_locations;
+  for (manipulation_msgs::Grasp& grasp: grasps )
   {
+    if (grasp.location.name.empty())
+      grasp.location.name=m_name+"/grasp_"+std::to_string(igrasp++)+"_"+grasp.tool_name;
+    if (grasp.location.frame.empty())
+    {
+      ROS_ERROR("grasp %s has no frame, discard",grasp.location.name.c_str());
+      continue;
+    }
+
     m_grasp.push_back(std::make_shared<manipulation::Grasp>(m_nh,grasp));
     if(!m_grasp.back()->getIntState())
     {
@@ -111,7 +123,7 @@ Object::Object( const ros::NodeHandle& nh,
       m_grasp.pop_back();
     }
     else
-      ROS_INFO("Added the object: %s of the type: %s.", m_name.c_str(), m_type.c_str()); 
+      ROS_DEBUG("Added the object: %s of the type: %s.", m_name.c_str(), m_type.c_str());
   }
 }
 
@@ -182,6 +194,9 @@ bool Box::addObject(const manipulation_msgs::Object& object)
   if (m_objects.find(object.name) != m_objects.end())
   {
     ROS_ERROR("The object: %s of the type: %s already exists in the box %s.", object.name.c_str(),object.type.c_str(),m_name.c_str());
+    ROS_ERROR("List of objects in the box");
+    for (const std::pair<std::string,ObjectPtr>& p: m_objects)
+      ROS_ERROR("- %s",p.first.c_str());
     return false;
   }
 
@@ -202,6 +217,9 @@ bool Box::addObject(const manipulation::ObjectPtr& object)
   if (m_objects.find(object->getName()) != m_objects.end())
   {
     ROS_ERROR("The object: %s of the type: %s already exists in the box %s.", object->getName().c_str(),object->getType().c_str(),m_name.c_str());
+    ROS_ERROR("List of objects in the box");
+    for (const std::pair<std::string,ObjectPtr>& p: m_objects)
+      ROS_ERROR("- %s",p.first.c_str());
     return false;
   }
 
@@ -311,7 +329,7 @@ Slot::Slot( const ros::NodeHandle& nh,
   }
   
   m_location_name = slot.location.name;
-  ROS_INFO("Added the new location %s to the location manager.",slot.location.name.c_str());
+  ROS_DEBUG("Added the new location %s to the location manager.",slot.location.name.c_str());
 
   return;
 }
@@ -369,7 +387,7 @@ SlotsGroup::SlotsGroup( const ros::NodeHandle& nh,
 {
   m_group_name = slots_group.name;
 
-  for (const manipulation_msgs::Slot& slot: slots_group.slots)
+  for (const manipulation_msgs::Slot& slot: slots_group.manipulation_slots)
   {
     m_slots.insert(std::pair<std::string,SlotPtr>(slot.name, std::make_shared<manipulation::Slot>(m_nh,slot)));
     if (!m_slots.at(slot.name)->getIntState())
@@ -377,11 +395,10 @@ SlotsGroup::SlotsGroup( const ros::NodeHandle& nh,
       m_slots.erase(m_slots.find(slot.name));
       continue;
     }
-
     computeGroupSize();
   }
   
-  ROS_INFO("Added the slots group %s.", m_group_name.c_str()); 
+  ROS_DEBUG("Added the slots group %s.", m_group_name.c_str());
 
 }
 

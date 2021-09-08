@@ -49,11 +49,11 @@ namespace manipulation
   class Grasp
   {
   protected:
-    bool m_int_state;
     std::string m_tool_name;
     std::string m_location_name;  // to keep trace about the location inserted in the LocationManager
 
     ros::NodeHandle m_nh;
+    bool m_int_state;
 
   public:
     /* Grasp constructor
@@ -83,14 +83,14 @@ namespace manipulation
   class Object 
   {
   protected:
-    bool m_int_state;
     std::string m_name;
     std::string m_type;
 
     ros::NodeHandle m_nh;
 
     std::vector<GraspPtr> m_grasp;
-  
+    bool m_int_state;
+
   public:
     /* Object constructor
     */
@@ -127,11 +127,11 @@ namespace manipulation
   class Box
   {
   protected:
-    bool m_int_state;
     std::string m_name;
     std::string m_location_name;  // to keep trace about the location inserted in the LocationManager
     
     ros::NodeHandle m_nh;
+    bool m_int_state;
 
     std::map<std::string,ObjectPtr> m_objects;
 
@@ -200,14 +200,14 @@ namespace manipulation
   class Slot 
   {
   protected:
-    bool m_int_state;
     std::string m_name;
-    int m_slot_size; // m_slot_size < 0 means infinite space
-    int m_slot_availability;
-    
+
     std::string m_location_name;  // to keep trace about the location inserted in the LocationManager
     
+    int m_slot_size; // m_slot_size < 0 means infinite space
+    int m_slot_availability;
     ros::NodeHandle m_nh;
+    bool m_int_state;
 
   public:
     /* Slot constructor
@@ -256,11 +256,11 @@ namespace manipulation
   class SlotsGroup 
   {
   protected:
-    bool m_int_state;
     std::string m_group_name;
-    int m_group_size;
 
     ros::NodeHandle m_nh;
+    int m_group_size;
+    bool m_int_state;
 
     std::map<std::string,SlotPtr> m_slots;
 

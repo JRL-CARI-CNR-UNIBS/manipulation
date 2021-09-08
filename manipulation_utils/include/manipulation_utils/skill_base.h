@@ -48,8 +48,7 @@ namespace manipulation
   {
     protected:
 
-      ros::NodeHandle m_nh;
-      ros::NodeHandle m_pnh; 
+      ros::NodeHandle m_pnh;
 
       std::string m_skill_name;
       std::map<std::string,double> m_fjt_result;
@@ -57,7 +56,7 @@ namespace manipulation
       ros::Publisher m_target_pub;
       ros::ServiceClient m_set_ctrl_srv;
       
-      tf::TransformBroadcaster m_broadcaster;
+
 
       std::map<std::string,std::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>>> m_fjt_clients;
 

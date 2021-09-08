@@ -52,9 +52,7 @@ namespace manipulation
   class PickObjects: public SkillBase
   {
     protected:
-      
-      ros::NodeHandle m_nh;
-      ros::NodeHandle m_pnh; 
+
 
       std::map<std::string,BoxPtr> m_boxes;
 

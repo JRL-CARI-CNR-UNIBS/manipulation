@@ -1,2 +1,2 @@
 string name
-manipulation_msgs/Slot[] slots
+manipulation_msgs/Slot[] manipulation_slots

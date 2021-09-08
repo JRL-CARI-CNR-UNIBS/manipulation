@@ -37,9 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace manipulation
 {
   PickObjects::PickObjects(const ros::NodeHandle &nh,
-                           const ros::NodeHandle &pnh) : m_nh(nh),
-                                                         m_pnh(pnh),
-                                                         SkillBase(nh, pnh, "pick")
+                           const ros::NodeHandle &pnh) :
+    SkillBase(nh, pnh, "pick")
   {
     // nothing to do here
   }
@@ -56,7 +55,8 @@ namespace manipulation
     m_list_objects_srv = m_pnh.advertiseService("list_objects", &PickObjects::listObjectsCb, this);
     m_reset_srv = m_pnh.advertiseService("inboud/reset_box", &PickObjects::resetBoxesCb, this);
 
-    m_attach_object_srv = m_nh.serviceClient<object_loader_msgs::AttachObject>("attach_object_to_link");
+
+    m_attach_object_srv = m_nh.serviceClient<object_loader_msgs::AttachObject>("/attach_object_to_link");
     m_attach_object_srv.waitForExistence();
 
     if (m_group_names.size() > 0)
@@ -85,7 +85,8 @@ namespace manipulation
   bool PickObjects::addBoxesCb(manipulation_msgs::AddBoxes::Request &req,
                                manipulation_msgs::AddBoxes::Response &res)
   {
-    int n_added_boxes, n_added_objects = 0;
+    int n_added_boxes=0;
+    int n_added_objects = 0;
     bool objects_added, boxes_added = false;
     for (const manipulation_msgs::Box &box : req.add_boxes)
     {
@@ -152,8 +153,14 @@ namespace manipulation
                                  manipulation_msgs::AddObjects::Response &res)
   {
 
-    if (m_boxes.find(req.box_name) == m_boxes.end())
+    bool find_box=false;
+    if (req.box_name.empty())
     {
+      find_box=true;
+    }
+    else if (m_boxes.find(req.box_name) == m_boxes.end())
+    {
+
       ROS_ERROR("Can't add objects the box %s is not available.", req.box_name.c_str());
       res.results = manipulation_msgs::AddObjects::Response::BoxNotFound;
       return false;
@@ -164,11 +171,33 @@ namespace manipulation
 
     for (const manipulation_msgs::Object &object : req.add_objects)
     {
-      if (!m_boxes.find(req.box_name)->second->addObject(object))
-        m_boxes.erase(m_boxes.find(req.box_name));
+      std::string box_name=req.box_name;
+      ObjectPtr obj=std::make_shared<Object>(m_pnh,object);
+      if (find_box)
+      {
+        double distance=std::numeric_limits<double>::infinity();
+        for (const std::pair<std::string,BoxPtr>& p: m_boxes)
+        {
+          LocationPtr box_location=getLocation(p.second->getLocationName());
+          Eigen::Vector3d box_position=box_location->getLocation().translation();
+          for (const std::string& grasp_name: obj->getGraspLocationNames())
+          {
+            Eigen::Vector3d grasp_position = getLocation(obj->getGrasp(grasp_name)->getLocationName())->getLocation().translation();
+            if ((grasp_position-box_position).norm()<distance)
+            {
+              box_name=p.first;
+              distance=(grasp_position-box_position).norm();
+            }
+          }
+        }
+      }
+      if (!m_boxes.find(box_name)->second->addObject(obj))
+      {
+        m_boxes.at(box_name)->removeObject(object.name);
+      }
       else
       {
-        ROS_INFO("Added the object %s of the type %s in box %s", object.name.c_str(), object.type.c_str(), req.box_name.c_str());
+        ROS_DEBUG("Added the object %s of the type %s in box %s", object.name.c_str(), object.type.c_str(), req.box_name.c_str());
         objects_added = true;
         n_added_objects++;
       }
@@ -228,7 +257,6 @@ namespace manipulation
         object_types.push_back(object->getType());
         object_names.push_back(object->getName());
       }
-
       box_names.push_back(it->first);
     }
 

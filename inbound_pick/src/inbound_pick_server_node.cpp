@@ -60,7 +60,10 @@ int main(int argc, char **argv)
   while (ros::ok())
   {
     if (!ps_client.call(ps_srv))
+    {
       ROS_ERROR("Error on  get_planning_scene srv not ok");
+      return -1;
+    }
     else
       pick.updatePlanningScene(ps_srv.response.scene);
   

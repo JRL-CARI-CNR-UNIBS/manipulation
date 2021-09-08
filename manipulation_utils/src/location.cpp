@@ -45,9 +45,11 @@ Location::Location( const std::string& name,
 
 }
 
-Location::Location(const manipulation_msgs::Location &msg)
+Location::Location(const manipulation_msgs::Location &msg, const Eigen::Affine3d &T_w_frame)
 {
-  tf::poseMsgToEigen(msg.pose,m_T_w_location);
+  Eigen::Affine3d T_frame_location;
+  tf::poseMsgToEigen(msg.pose,T_frame_location);
+  m_T_w_location=T_w_frame*T_frame_location;
 
   Eigen::Affine3d T_location_approach;
   tf::poseMsgToEigen(msg.approach_relative_pose,T_location_approach);
@@ -321,7 +323,45 @@ bool LocationManager::init()
   m_get_location_ik_srv  = m_nh.advertiseService("get_location_ik",  &LocationManager::getLocationIkCb,   this);
   ROS_INFO("Location Manager initialized.");
 
+  m_run_tf_thread=true;
+  m_th_thread=std::thread(&LocationManager::tfThread,this);
   return true;
+}
+
+LocationManager::~LocationManager()
+{
+  m_run_tf_thread=false;
+  if (m_th_thread.joinable())
+    m_th_thread.join();
+}
+
+void LocationManager::tfThread()
+{
+  ros::Rate lp(50);
+  while (m_run_tf_thread)
+  {
+    tf_mutex.lock();
+    for (const std::pair<std::string,tf::StampedTransform>& p: m_transforms)
+    {
+      tf::StampedTransform transform(p.second);
+      transform.stamp_=ros::Time::now();
+      m_broadcaster.sendTransform(transform);
+    }
+    for (const std::pair<std::string,tf::StampedTransform>& p: m_approach_transforms)
+    {
+      tf::StampedTransform transform(p.second);
+      transform.stamp_=ros::Time::now();
+      m_broadcaster.sendTransform(transform);
+    }
+    for (const std::pair<std::string,tf::StampedTransform>& p: m_leave_transforms)
+    {
+      tf::StampedTransform transform(p.second);
+      transform.stamp_=ros::Time::now();
+      m_broadcaster.sendTransform(transform);
+    }
+    tf_mutex.unlock();
+    lp.sleep();
+  }
 }
 
 bool LocationManager::addLocationsCb( manipulation_msgs::AddLocations::Request& req,
@@ -399,13 +439,101 @@ bool LocationManager::getLocationIkCb(manipulation_msgs::GetLocationIkSolution::
 
 bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& location)
 {
-  LocationPtr location_ptr(new Location(location));
-
-  if ( m_locations.find(location_ptr->m_name) != m_locations.end() )
+  if (location.name.empty())
   {
-    ROS_WARN("Location %s is already present",location_ptr->m_name.c_str());
+    ROS_WARN_STREAM("Location has no name..... \n" << location);
     return false;
   }
+
+  ROS_DEBUG("Adding location named %s",location.name.c_str());
+
+  if ( m_locations.find(location.name) != m_locations.end() )
+  {
+    ROS_WARN("Location %s is already present. List of locations:",location.name.c_str());
+    for (const std::pair<std::string,LocationPtr>& s: m_locations)
+      ROS_WARN("- %s",s.first.c_str());
+    return false;
+  }
+
+
+  tf::StampedTransform location_transform;
+  ros::Time t0 = ros::Time(0);
+  std::string tf_error;
+  if (!m_listener.waitForTransform(m_world_frame,
+                                   location.frame,
+                                   t0,
+                                   ros::Duration(10),
+                                   ros::Duration(0.01),
+                                   &tf_error))
+  {
+    ROS_WARN("Unable to find a transform from %s to %s, tf error=%s", m_world_frame.c_str(), location.frame.c_str(),tf_error.c_str());
+    return false;
+  }
+
+  try
+  {
+    m_listener.lookupTransform(m_world_frame, location.frame, t0, location_transform);
+  }
+  catch (tf::TransformException ex)
+  {
+    ROS_ERROR("Exception %s",ex.what());
+    return false;
+  }
+
+  Eigen::Affine3d T_w_frame;
+  tf::poseTFToEigen(location_transform,T_w_frame);
+  LocationPtr location_ptr(new Location(location,T_w_frame));
+
+
+  tf::StampedTransform transform;
+  geometry_msgs::Pose pose=location.pose;
+  if (pose.orientation.x==0 &&
+      pose.orientation.y==0 &&
+      pose.orientation.z==0 &&
+      pose.orientation.w==0
+            )
+    pose.orientation.w=1.0;
+  tf::poseMsgToTF(pose,transform);
+  transform.child_frame_id_=location.name;
+  transform.frame_id_=location.frame;
+  transform.stamp_=ros::Time::now();
+
+  tf_mutex.lock();
+  m_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
+  tf_mutex.unlock();
+
+  pose=location.approach_relative_pose;
+  if (pose.orientation.x==0 &&
+      pose.orientation.y==0 &&
+      pose.orientation.z==0 &&
+      pose.orientation.w==0
+            )
+    pose.orientation.w=1.0;
+
+  tf::poseMsgToTF(pose,transform);
+  transform.child_frame_id_=location.name+"_approach";
+  transform.frame_id_=location.name;
+  transform.stamp_=ros::Time::now();
+  tf_mutex.lock();
+  m_approach_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
+  tf_mutex.unlock();
+
+  pose=location.leave_relative_pose;
+    if (pose.orientation.x==0 &&
+        pose.orientation.y==0 &&
+        pose.orientation.z==0 &&
+        pose.orientation.w==0
+              )
+      pose.orientation.w=1.0;
+  tf::poseMsgToTF(pose,transform);
+  transform.child_frame_id_=location.name+"_leave";
+  transform.frame_id_=location.name;
+  transform.stamp_=ros::Time::now();
+  tf_mutex.lock();
+  m_leave_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
+  tf_mutex.unlock();
+
+
 
   bool get_ik_group = false;
 
@@ -459,23 +587,25 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
 
         Eigen::Affine3d T_w_loc=m_chains.at(group.first)->getTransformation(sols.at(0));
         rosdyn::getFrameDistance(T_w_loc,location_ptr->m_T_w_location,error);
-        if (error.norm()>1e-5)
+        if (error.head(3).norm()>1e-4 || error.tail(3).norm()>1e-3)
         {
-          ROS_ERROR("Parameter %s/%s/%s reprensent a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+          ROS_ERROR("Parameter %s/%s/%s reprensents a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+          ROS_ERROR_STREAM("\nT_w_location = \n"<<location_ptr->m_T_w_location.matrix()<<"\nT_w_location from param =\n"<<T_w_loc.matrix());
+          ROS_ERROR_STREAM("\nerror = " << error.transpose());
           compute_ik=true;
         }
 
         Eigen::Affine3d T_w_approach=m_chains.at(group.first)->getTransformation(approach_sols.at(0));
         rosdyn::getFrameDistance(T_w_approach,location_ptr->m_T_w_approach,error);
-        if (error.norm()>1e-5)
+        if (error.head(3).norm()>1e-4 || error.tail(3).norm()>1e-3)
         {
-          ROS_ERROR("Parameter %s/%s/approach/%s reprensent a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+          ROS_ERROR("Parameter %s/%s/approach/%s reprensents a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
           compute_ik=true;
         }
 
         Eigen::Affine3d T_w_leave=m_chains.at(group.first)->getTransformation(leave_sols.at(0));
         rosdyn::getFrameDistance(T_w_leave,location_ptr->m_T_w_leave,error);
-        if (error.norm()>1e-5)
+        if (error.head(3).norm()>1e-4 || error.tail(3).norm()>1e-3)
         {
           ROS_ERROR("Parameter %s/%s/leave/%s reprensent a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
           compute_ik=true;
@@ -506,9 +636,10 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
         leave_sols.push_back(tmp_leave_sols.at(0));
       }
 
-      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/"+group.first),sols);
-      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/approach/"+group.first),approach_sols);
-      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/leave/"+group.first),leave_sols);
+      std::string what;
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/"+group.first),sols,what);
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/approach/"+group.first),approach_sols,what);
+      rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/leave/"+group.first),leave_sols,what);
     }
 
 
@@ -550,6 +681,11 @@ bool LocationManager::removeLocation(const std::string& location_name)
   {
     ROS_INFO("delete_all shortcut: delete all the locations in %s",m_nh.getNamespace().c_str());
     m_locations.clear();
+    tf_mutex.lock();
+    m_transforms.clear();
+    m_approach_transforms.clear();
+    m_leave_transforms.clear();
+    tf_mutex.unlock();
     return true;
   }
 
@@ -558,7 +694,15 @@ bool LocationManager::removeLocation(const std::string& location_name)
     ROS_WARN("Location %s is not present",location_name.c_str());
     return false;
   }
+
+
   m_locations.erase(m_locations.find(location_name));
+
+  tf_mutex.lock();
+  m_transforms.erase(m_transforms.find(location_name));
+  m_approach_transforms.erase(m_approach_transforms.find(location_name));
+  m_leave_transforms.erase(m_leave_transforms.find(location_name));
+  tf_mutex.unlock();
   return true;
 }
 
@@ -592,7 +736,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
     moveit::planning_interface::MoveGroupInterfacePtr group = m_groups.at(group_name);
     moveit::core::JointModelGroup* jmg = m_joint_models.at(group_name);
 
-    int max_ik_goal_number = m_max_ik_goal_number.at(group_name);
+    unsigned int max_ik_goal_number = m_max_ik_goal_number.at(group_name);
 
     if (!group->startStateMonitor(2))
     {
@@ -922,6 +1066,14 @@ bool LocationManager::ik( const std::string& group_name,
   ROS_DEBUG("Found %lu solutions for the IK.", sols.size());
 
   return found;
+}
+
+
+LocationPtr LocationManager::getLocation(const std::string& location_name)
+{
+  if( m_locations.find(location_name)==m_locations.end())
+    return NULL;
+  return m_locations.at(location_name);
 }
 
 void LocationManager::updatePlanningScene(const moveit_msgs::PlanningScene& scene)
