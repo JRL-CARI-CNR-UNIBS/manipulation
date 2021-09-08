@@ -620,7 +620,6 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
         ROS_WARN("Location %s can't be reached by group %s",location_ptr->m_name.c_str(),group.first.c_str());
         continue;
       }
-
       for (const Eigen::VectorXd& q: location_sols)
       {
         std::vector<Eigen::VectorXd> tmp_sols;
@@ -642,12 +641,18 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
       rosparam_utilities::setParam(m_nh,std::string(location_ptr->m_name+"/leave/"+group.first),leave_sols,what);
     }
 
+    if (sols.size()>0)
+    {
+      location_ptr->addLocationIk(group.first,sols);
+      location_ptr->addApproachIk(group.first,approach_sols);
+      location_ptr->addLeaveIk(group.first,leave_sols);
 
-    location_ptr->addLocationIk(group.first,sols);
-    location_ptr->addApproachIk(group.first,approach_sols);
-    location_ptr->addLeaveIk(group.first,leave_sols);
-
-    get_ik_group = true;
+      get_ik_group = true;
+    }
+    else
+    {
+      ROS_WARN("no IK solutions found for %s",location_ptr->m_name.c_str());
+    }
   }
 
   if(get_ik_group)
