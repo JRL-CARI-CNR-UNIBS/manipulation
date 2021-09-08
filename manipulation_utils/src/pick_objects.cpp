@@ -191,15 +191,23 @@ namespace manipulation
           }
         }
       }
-      if (!m_boxes.find(box_name)->second->addObject(obj))
+      if ( box_name.empty() )
       {
-        m_boxes.at(box_name)->removeObject(object.name);
+        ROS_ERROR("There isn't any box for the object %s",obj->getName().c_str());
       }
       else
       {
-        ROS_DEBUG("Added the object %s of the type %s in box %s", object.name.c_str(), object.type.c_str(), req.box_name.c_str());
-        objects_added = true;
-        n_added_objects++;
+        if (!m_boxes.find(box_name)->second->addObject(obj))
+        {
+          m_boxes.at(box_name)->removeObject(object.name);
+        }
+        else
+        {
+          ROS_DEBUG("Added the object %s of the type %s in box %s", object.name.c_str(), object.type.c_str(), box_name.c_str());
+          ROS_INFO("Added the object %s of the type %s in box %s", object.name.c_str(), object.type.c_str(), box_name.c_str());
+          objects_added = true;
+          n_added_objects++;
+        }
       }
     }
 

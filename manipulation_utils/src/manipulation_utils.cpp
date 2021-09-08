@@ -224,6 +224,7 @@ bool Box::addObject(const manipulation::ObjectPtr& object)
   }
 
   m_objects.insert(std::pair<std::string,ObjectPtr>(object->getName(),object));
+
   if (!m_objects.at(object->getName())->getIntState())
   {
     m_objects.erase(m_objects.find(object->getName()));
