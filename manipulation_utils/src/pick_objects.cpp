@@ -555,15 +555,15 @@ namespace manipulation
       manipulation::ObjectPtr selected_object = selected_box->getObject(best_object_name);
       manipulation::GraspPtr selected_grasp_pose = selected_object->getGrasp(best_object_location_name);
 
-      tf::Transform transform;
-      tf::transformEigenToTF(m_locations.at(selected_grasp_pose->getLocationName())->getApproach(), transform);
-      m_tf.insert(std::pair<std::string, tf::Transform>("pick/approach/" + selected_object->getName(), transform));
+//      tf::Transform transform;
+//      tf::transformEigenToTF(m_locations.at(selected_grasp_pose->getLocationName())->getApproach(), transform);
+//      m_tf.insert(std::pair<std::string, tf::Transform>("pick/approach/" + selected_object->getName(), transform));
 
-      tf::transformEigenToTF(m_locations.at(selected_grasp_pose->getLocationName())->getLocation(), transform);
-      m_tf.insert(std::pair<std::string, tf::Transform>("pick/to/" + selected_object->getName(), transform));
+//      tf::transformEigenToTF(m_locations.at(selected_grasp_pose->getLocationName())->getLocation(), transform);
+//      m_tf.insert(std::pair<std::string, tf::Transform>("pick/to/" + selected_object->getName(), transform));
 
-      tf::transformEigenToTF(m_locations.at(selected_grasp_pose->getLocationName())->getLeave(), transform);
-      m_tf.insert(std::pair<std::string, tf::Transform>("pick/leave/" + selected_object->getName(), transform));
+//      tf::transformEigenToTF(m_locations.at(selected_grasp_pose->getLocationName())->getLeave(), transform);
+//      m_tf.insert(std::pair<std::string, tf::Transform>("pick/leave/" + selected_object->getName(), transform));
 
       t_planning = ros::Time::now();
       action_res.planning_duration += (t_planning - t_planning_init);

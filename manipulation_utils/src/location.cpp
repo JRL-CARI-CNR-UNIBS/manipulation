@@ -589,9 +589,7 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
         rosdyn::getFrameDistance(T_w_loc,location_ptr->m_T_w_location,error);
         if (error.head(3).norm()>1e-4 || error.tail(3).norm()>1e-3)
         {
-          ROS_ERROR("Parameter %s/%s/%s reprensents a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
-          ROS_ERROR_STREAM("\nT_w_location = \n"<<location_ptr->m_T_w_location.matrix()<<"\nT_w_location from param =\n"<<T_w_loc.matrix());
-          ROS_ERROR_STREAM("\nerror = " << error.transpose());
+          ROS_INFO("Parameter %s/%s/%s reprensents a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
           compute_ik=true;
         }
 
@@ -599,7 +597,7 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
         rosdyn::getFrameDistance(T_w_approach,location_ptr->m_T_w_approach,error);
         if (error.head(3).norm()>1e-4 || error.tail(3).norm()>1e-3)
         {
-          ROS_ERROR("Parameter %s/%s/approach/%s reprensents a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+          ROS_INFO("Parameter %s/%s/approach/%s reprensents a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
           compute_ik=true;
         }
 
@@ -607,8 +605,15 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
         rosdyn::getFrameDistance(T_w_leave,location_ptr->m_T_w_leave,error);
         if (error.head(3).norm()>1e-4 || error.tail(3).norm()>1e-3)
         {
-          ROS_ERROR("Parameter %s/%s/leave/%s reprensent a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
+          ROS_INFO("Parameter %s/%s/leave/%s reprensent a wrong inverse kinematics. Recomputing it.",m_nh.getNamespace().c_str(),location_ptr->m_name.c_str(),group.first.c_str());
           compute_ik=true;
+        }
+
+        if (compute_ik)
+        {
+          sols.clear();
+          approach_sols.clear();
+          leave_sols.clear();
         }
       }
     }
@@ -770,7 +775,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
     std::vector<Eigen::VectorXd> sols;
     for(const std::string& location_name: location_names)
     {
-      ROS_INFO("Planning to location: %s", location_name.c_str());
+      ROS_DEBUG("Planning to location: %s", location_name.c_str());
       std::vector<Eigen::VectorXd> sols_single_location;
       if(!getIkSolForLocation(location_name,destination,group_name,sols_single_location))
       {
@@ -835,7 +840,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
       req.goal_constraints.push_back(joint_goal);
     }
 
-    ROS_INFO("Found %zu solution",solutions.size());
+    ROS_DEBUG("Found %zu solution",solutions.size());
 
     if (req.goal_constraints.size()==0)
     {
@@ -843,7 +848,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
       result = res.error_code_;
       return plan;
     }
-    ROS_INFO("Adding %zu goals to the Planning Pipeline.",req.goal_constraints.size());
+    ROS_DEBUG("Adding %zu goals to the Planning Pipeline.",req.goal_constraints.size());
 
 
     if (!m_planning_pipeline.at(group_name)->generatePlan(planning_scene, req, res))
@@ -854,7 +859,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
     }
 
     plan.planning_time_ = res.planning_time_;
-    ROS_INFO("Planning time: %f.",plan.planning_time_);
+    ROS_DEBUG("Planning time: %f.",plan.planning_time_);
 
     res.trajectory_->getRobotTrajectoryMsg(plan.trajectory_);
     if (res.trajectory_->getWayPointCount()==0)
@@ -869,9 +874,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
       min_dist.push_back(computeDistanceBetweenLocations(location_name, group_name, destination, final_configuration));
 
     plan_to_location_name = location_names.at(std::min_element(min_dist.begin(),min_dist.end()) - min_dist.begin());
-    ROS_INFO("Planning completed. Selected location: %s", plan_to_location_name.c_str());
-
-    Eigen::Affine3d loc_ = m_locations.at(plan_to_location_name)->getLocation();
+    ROS_DEBUG("Planning completed. Selected location: %s", plan_to_location_name.c_str());
 
     return plan;
   }
