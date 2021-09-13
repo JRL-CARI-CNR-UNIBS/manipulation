@@ -323,8 +323,8 @@ bool LocationManager::init()
   m_get_location_ik_srv  = m_nh.advertiseService("get_location_ik",  &LocationManager::getLocationIkCb,   this);
   ROS_INFO("Location Manager initialized.");
 
-  m_run_tf_thread=true;
-  m_th_thread=std::thread(&LocationManager::tfThread,this);
+  m_run_tf_thread = true;
+  m_th_thread = std::thread(&LocationManager::tfThread,this);
   return true;
 }
 
@@ -368,12 +368,10 @@ bool LocationManager::addLocationsCb( manipulation_msgs::AddLocations::Request& 
                                       manipulation_msgs::AddLocations::Response& res)
 {
   if(!addLocationsFromMsg(req.locations))
-  {
     res.results = manipulation_msgs::AddLocations::Response::Error;
-    return false;
-  }
+  else
+    res.results = manipulation_msgs::AddLocations::Response::Success;
 
-  res.results = manipulation_msgs::AddLocations::Response::Success;
   return true;
 }
 
@@ -381,12 +379,10 @@ bool LocationManager::removeLocationsCb(manipulation_msgs::RemoveLocations::Requ
                                         manipulation_msgs::RemoveLocations::Response& res)
 {
   if(!removeLocations(req.location_names))
-  {
     res.results = manipulation_msgs::RemoveLocations::Response::Error;
-    return false;
-  }
+  else
+    res.results = manipulation_msgs::RemoveLocations::Response::Success;
 
-  res.results = manipulation_msgs::RemoveLocations::Response::Success;
   return true;
 }
 
@@ -416,7 +412,7 @@ bool LocationManager::getLocationIkCb(manipulation_msgs::GetLocationIkSolution::
     res.approach_ik_solutions.push_back(configuration);
   }
 
-  ik_sols=loc->getLocationIk(req.group_name);
+  ik_sols = loc->getLocationIk(req.group_name);
   for (const Eigen::VectorXd& q: ik_sols)
   {
     manipulation_msgs::Configuration configuration;
@@ -425,7 +421,7 @@ bool LocationManager::getLocationIkCb(manipulation_msgs::GetLocationIkSolution::
     res.ik_solutions.push_back(configuration);
   }
 
-  ik_sols=loc->getLeaveIk(req.group_name);
+  ik_sols = loc->getLeaveIk(req.group_name);
   for (const Eigen::VectorXd& q: ik_sols)
   {
     manipulation_msgs::Configuration configuration;
@@ -487,16 +483,16 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
 
   tf::StampedTransform transform;
   geometry_msgs::Pose pose=location.pose;
-  if (pose.orientation.x==0 &&
-      pose.orientation.y==0 &&
-      pose.orientation.z==0 &&
-      pose.orientation.w==0
-            )
+  if (pose.orientation.x == 0 &&
+      pose.orientation.y == 0 &&
+      pose.orientation.z == 0 &&
+      pose.orientation.w == 0     )
     pose.orientation.w=1.0;
+
   tf::poseMsgToTF(pose,transform);
-  transform.child_frame_id_=location.name;
-  transform.frame_id_=location.frame;
-  transform.stamp_=ros::Time::now();
+  transform.child_frame_id_ = location.name;
+  transform.frame_id_ = location.frame;
+  transform.stamp_ = ros::Time::now();
 
   tf_mutex.lock();
   m_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
@@ -519,16 +515,15 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
   tf_mutex.unlock();
 
   pose=location.leave_relative_pose;
-    if (pose.orientation.x==0 &&
-        pose.orientation.y==0 &&
-        pose.orientation.z==0 &&
-        pose.orientation.w==0
-              )
-      pose.orientation.w=1.0;
+    if (pose.orientation.x == 0 &&
+        pose.orientation.y == 0 &&
+        pose.orientation.z == 0 &&
+        pose.orientation.w == 0 )
+      pose.orientation.w = 1.0;
   tf::poseMsgToTF(pose,transform);
-  transform.child_frame_id_=location.name+"_leave";
-  transform.frame_id_=location.name;
-  transform.stamp_=ros::Time::now();
+  transform.child_frame_id_ = location.name+"_leave";
+  transform.frame_id_ = location.name;
+  transform.stamp_ = ros::Time::now();
   tf_mutex.lock();
   m_leave_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
   tf_mutex.unlock();

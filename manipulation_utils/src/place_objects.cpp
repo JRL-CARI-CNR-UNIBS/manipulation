@@ -89,7 +89,9 @@ namespace manipulation
   bool PlaceObjects::addSlotsGroupCb( manipulation_msgs::AddSlotsGroup::Request& req, 
                                       manipulation_msgs::AddSlotsGroup::Response& res)
   { 
-    bool slot_added, slots_group_added = false;
+    bool slot_added = false;
+    bool slots_group_added = false;
+
     for (const manipulation_msgs::SlotsGroup& slots_group: req.add_slots_groups )
     {
       if(m_slots_group.find(slots_group.name) != m_slots_group.end())
@@ -123,7 +125,7 @@ namespace manipulation
     else
       res.results = manipulation_msgs::AddSlotsGroup::Response::Error;
 
-    return (slot_added || slots_group_added);
+    return true;
   }
 
   bool PlaceObjects::removeSlotsGroupCb(manipulation_msgs::RemoveSlotsGroup::Request& req, 
@@ -170,7 +172,7 @@ namespace manipulation
     else
       res.results = manipulation_msgs::AddSlots::Response::Error;
     
-    return slot_added;
+    return true;
   }
 
   bool PlaceObjects::removeSlotsCb( manipulation_msgs::RemoveSlots::Request& req, 
@@ -239,7 +241,7 @@ namespace manipulation
     if (!slot_removed)
       ROS_ERROR("The slot %s is not available.", req.slot_name.c_str() );
    
-    return slot_removed; 
+    return true;
   }
 
   bool PlaceObjects::resetSlotsCb(manipulation_msgs::ResetSlots::Request& req, 
@@ -474,33 +476,10 @@ namespace manipulation
         return;
       }
 
-//      tf::Transform transform;
-//      tf::transformEigenToTF(m_locations.at(selected_slot->getLocationName())->getApproach(), transform);
-//      m_tf.insert(std::pair<std::string,tf::Transform>("place/approach/"+selected_slot->getName(),transform));
-
-//      tf::transformEigenToTF(m_locations.at(selected_slot->getLocationName())->getLocation(), transform);
-//      m_tf.insert(std::pair<std::string,tf::Transform>("place/to/"+selected_slot->getName(),transform));
-
-//      tf::transformEigenToTF(m_locations.at(selected_slot->getLocationName())->getLeave(), transform);
-//      m_tf.insert(std::pair<std::string,tf::Transform>("place/leave/"+selected_slot->getName(),transform));
-
-
       t_planning = ros::Time::now();
       action_res.planning_duration += (t_planning-t_planning_init);
       action_res.expected_execution_duration += plan.trajectory_.joint_trajectory.points.back().time_from_start;
       action_res.path_length += trajectory_processing::computeTrajectoryLength(plan.trajectory_.joint_trajectory);
-
-      //// 
-      // fjtClientWaitForResult(group_name);
-      
-      // if (!wait(group_name))
-      // {
-      //   action_res.result = manipulation_msgs::PlaceObjectsResult::TrajectoryError;
-      //   ROS_ERROR("Error executing %s/follow_joint_trajectory",group_name.c_str());
-      //   as->setAborted(action_res,"error in trajectory execution");
-      //   return;
-      // }
-      /////
 
       disp_trj.trajectory.at(0) = (plan.trajectory_);
       disp_trj.trajectory_start = plan.start_state_;
