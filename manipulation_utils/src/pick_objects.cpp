@@ -87,7 +87,8 @@ namespace manipulation
   {
     int n_added_boxes=0;
     int n_added_objects = 0;
-    bool objects_added, boxes_added = false;
+    bool objects_added = false;
+    bool boxes_added = false;
     for (const manipulation_msgs::Box &box : req.add_boxes)
     {
       if (m_boxes.find(box.name) != m_boxes.end())
