@@ -164,7 +164,7 @@ namespace manipulation
 
       ROS_ERROR("Can't add objects the box %s is not available.", req.box_name.c_str());
       res.results = manipulation_msgs::AddObjects::Response::BoxNotFound;
-      return false;
+      return true;
     }
 
     int n_added_objects = 0;
