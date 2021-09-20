@@ -50,6 +50,8 @@ add_service_files(
   RemoveSlotsGroup.srv
   ResetBoxes.srv
   ResetSlots.srv
+  ListOfJobExecuters.srv
+  RegisterJobExecuter.srv
   )
 
 add_action_files(
