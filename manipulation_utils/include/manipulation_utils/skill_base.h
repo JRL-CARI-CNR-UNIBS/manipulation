@@ -37,6 +37,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <control_msgs/FollowJointTrajectoryResult.h>
 
 #include <manipulation_msgs/JobExecution.h>
+#include <manipulation_msgs/ListOfJobExecuters.h>
+#include <manipulation_msgs/RegisterJobExecuter.h>
+
 #include <manipulation_utils/location.h>
 
 #include <moveit/move_group_interface/move_group_interface.h>
@@ -56,7 +59,10 @@ namespace manipulation
       ros::Publisher m_target_pub;
       ros::ServiceClient m_set_ctrl_srv;
       
+      ros::ServiceServer m_list_job_executers;
+      ros::ServiceServer m_register_job_executer;
 
+      std::vector<std::string> m_job_executers;
 
       std::map<std::string,std::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>>> m_fjt_clients;
 
@@ -76,6 +82,12 @@ namespace manipulation
                       const std::string& property_id );
 
       bool setController( const std::string& controller_name );
+
+      bool registerExecuter( manipulation_msgs::RegisterJobExecuter::Request&  req,
+                              manipulation_msgs::RegisterJobExecuter::Response& res);
+
+      bool listExecuters( manipulation_msgs::ListOfJobExecuters::Request&  req,
+                          manipulation_msgs::ListOfJobExecuters::Response& res);
 
     public:
       SkillBase(const ros::NodeHandle& nh,

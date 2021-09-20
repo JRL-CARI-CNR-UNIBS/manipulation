@@ -34,7 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <manipulation_utils/skill_base.h>
 #include <manipulation_msgs/JobExecution.h>
-
 namespace manipulation
 {
   SkillBase::SkillBase( const ros::NodeHandle& nh,
@@ -69,6 +68,8 @@ namespace manipulation
     m_set_ctrl_srv = m_pnh.serviceClient<configuration_msgs::StartConfiguration>("/configuration_manager/start_configuration"); 
     m_set_ctrl_srv.waitForExistence();
 
+    m_list_job_executers    = m_pnh.advertiseService("list_executers",&SkillBase::listExecuters,this);
+    m_register_job_executer = m_pnh.advertiseService("register_executer",&SkillBase::registerExecuter,this);
     return true;
   }
 
@@ -197,6 +198,24 @@ namespace manipulation
     }
     
     ROS_INFO("Controller %s started.", controller_name.c_str());
+    return true;
+  }
+
+  bool SkillBase::registerExecuter(manipulation_msgs::RegisterJobExecuter::Request &req, manipulation_msgs::RegisterJobExecuter::Response &res)
+  {
+    if (req.executer_name.empty())
+    {
+      ROS_ERROR("you are trying to register a job executer with no name");
+      return false;
+    }
+    m_job_executers.push_back(req.executer_name);
+    return true;
+  }
+
+  bool SkillBase::listExecuters(manipulation_msgs::ListOfJobExecuters::Request &req, manipulation_msgs::ListOfJobExecuters::Response &res)
+  {
+    for (std::string s: m_job_executers)
+      res.executers.push_back(s);
     return true;
   }
 
