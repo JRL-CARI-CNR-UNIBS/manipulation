@@ -342,8 +342,12 @@ namespace manipulation
         }
       }
       else
+      {
         ROS_WARN("The goal has no object_name");
-
+        action_res.result = manipulation_msgs::PickObjectsResult::NoObjectsFound;
+        as->setAborted(action_res, "The goal has no object_type");
+        return;
+      }
 
       //Check which boxes contain the objects of a predefined type,
       //this research will be done only if research by object names fails
@@ -361,7 +365,12 @@ namespace manipulation
         }
       }
       else
+      {
         ROS_WARN("The goal has no object_type");
+        action_res.result = manipulation_msgs::PickObjectsResult::NoObjectsFound;
+        as->setAborted(action_res, "The goal has no object_type");
+        return;
+      }
 
       if (possible_boxes_location_names.size() == 0)
       {
