@@ -341,6 +341,9 @@ namespace manipulation
           }
         }
       }
+      else
+        ROS_WARN("The goal has no object_name");
+
 
       //Check which boxes contain the objects of a predefined type,
       //this research will be done only if research by object names fails
@@ -357,6 +360,8 @@ namespace manipulation
           }
         }
       }
+      else
+        ROS_WARN("The goal has no object_type");
 
       if (possible_boxes_location_names.size() == 0)
       {
