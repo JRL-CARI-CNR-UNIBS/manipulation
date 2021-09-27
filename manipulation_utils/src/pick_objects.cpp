@@ -343,10 +343,7 @@ namespace manipulation
       }
       else
       {
-        ROS_WARN("The goal has no object_name");
-        action_res.result = manipulation_msgs::PickObjectsResult::NoObjectsFound;
-        as->setAborted(action_res, "The goal has no object_type");
-        return;
+        ROS_DEBUG("The goal has no object_name");
       }
 
       //Check which boxes contain the objects of a predefined type,
