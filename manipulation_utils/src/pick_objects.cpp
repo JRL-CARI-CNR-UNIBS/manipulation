@@ -551,17 +551,79 @@ namespace manipulation
       }
 
       std::string best_object_location_name;
+      Eigen::VectorXd object_approach_jconf;
       Eigen::VectorXd object_grasp_jconf;
       std::vector<std::string> possible_objects;
 
+      /* Move to approach object */
       t_planning_init = ros::Time::now();
 
       ROS_INFO("Planning to object picking position. Group %s, Box name %s", group_name.c_str(), best_box_name.c_str());
       plan = planTo(group_name,
                     possible_object_location_names,
+                    Location::Destination::Approach,
+                    box_approach_jconf,
+                    box_approach_jconf,
+                    result,
+                    object_approach_jconf,
+                    best_object_location_name);
+
+      if (!result)
+      {
+        action_res.result = manipulation_msgs::PickObjectsResult::NoAvailableTrajectories;
+        ROS_ERROR("Group %s: error in plan to best object in the box %s, code = %d", group_name.c_str(), best_box_name.c_str(), result.val);
+        as->setAborted(action_res, "error in planning to object");
+        return;
+      }
+
+      std::string best_object_name = selected_box->findObjectByGraspingLocation(best_object_location_name);
+      manipulation::ObjectPtr selected_object = selected_box->getObject(best_object_name);
+      manipulation::GraspPtr selected_grasp_pose = selected_object->getGrasp(best_object_location_name);
+
+      t_planning = ros::Time::now();
+      action_res.planning_duration += (t_planning - t_planning_init);
+      action_res.expected_execution_duration += plan.trajectory_.joint_trajectory.points.back().time_from_start;
+      action_res.path_length += trajectory_processing::computeTrajectoryLength(plan.trajectory_.joint_trajectory);
+
+      disp_trj.trajectory.at(0) = (plan.trajectory_);
+      disp_trj.trajectory_start = plan.start_state_;
+      m_display_publisher.publish(disp_trj);
+
+      tf::poseEigenToMsg(m_locations.at(best_object_location_name)->getLocation(), target.pose);
+      m_target_pub.publish(target);
+
+      ROS_INFO("Execute move to object position for picking. Group %s, object name %s", group_name.c_str(), best_object_name.c_str());
+      if (!execute(group_name, plan))
+      {
+        action_res.result = manipulation_msgs::PickObjectsResult::TrajectoryError;
+        ROS_ERROR("Error while executing trajectory");
+        as->setAborted(action_res, "error while executing trajectory.");
+        return;
+      }
+
+      fjtClientWaitForResult(group_name);
+
+      if (!wait(group_name))
+      {
+        action_res.result = manipulation_msgs::PickObjectsResult::TrajectoryError;
+        ROS_ERROR("Error executing %s/follow_joint_trajectory", group_name.c_str());
+        as->setAborted(action_res, "error in trajectory execution");
+        return;
+      }
+
+      /* Move to Object */
+
+      /* Move to approach object */
+      t_planning_init = ros::Time::now();
+
+      ROS_INFO("Planning to object picking position. Group %s, Box name %s", group_name.c_str(), best_box_name.c_str());
+      std::vector<std::string> obj_names;
+      obj_names.push_back(best_object_name);
+      plan = planTo(group_name,
+                    obj_names,
                     Location::Destination::To,
-                    box_approach_jconf,
-                    box_approach_jconf,
+                    object_approach_jconf,
+                    object_approach_jconf,
                     result,
                     object_grasp_jconf,
                     best_object_location_name);
@@ -684,7 +746,7 @@ namespace manipulation
                     best_object_location_names,
                     Location::Destination::Leave,
                     actual_jconf,
-                    actual_jconf,
+                    object_approach_jconf,
                     result,
                     object_leave_jconf,
                     best_leave_location_name);
