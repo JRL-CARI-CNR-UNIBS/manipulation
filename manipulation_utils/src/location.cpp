@@ -485,7 +485,7 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
 
 
   bool get_ik_group = false;
-
+  std::string prefix="";
   for (const std::pair<std::string,moveit::planning_interface::MoveGroupInterfacePtr>& group: m_groups)
   {
     std::vector<Eigen::VectorXd> sols;
@@ -613,10 +613,9 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
     m_locations.insert(std::pair<std::string,LocationPtr>(location_ptr->m_name,location_ptr));
   else
   {
+    std::string prefix="FAIL/";
     ROS_WARN("The location %s was not added to the location manager", location_ptr->m_name.c_str());
   }
-
-  std::string prefix=get_ik_group?"":"FAIL/";
 
   tf::StampedTransform transform;
   geometry_msgs::Pose pose=location.pose;
