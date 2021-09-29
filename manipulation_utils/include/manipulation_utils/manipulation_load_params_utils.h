@@ -55,7 +55,6 @@ namespace manipulation
     ros::ServiceClient add_box_client_;
     ros::ServiceClient add_objs_client_;
     ros::ServiceClient add_objs_to_scene_client_;
-    ros::ServiceClient change_color_client_;
     tf::TransformListener listener_;
 
   public:

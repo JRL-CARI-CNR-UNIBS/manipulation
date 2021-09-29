@@ -481,52 +481,6 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
   LocationPtr location_ptr(new Location(location,T_w_frame));
 
 
-  tf::StampedTransform transform;
-  geometry_msgs::Pose pose=location.pose;
-  if (pose.orientation.x == 0 &&
-      pose.orientation.y == 0 &&
-      pose.orientation.z == 0 &&
-      pose.orientation.w == 0     )
-    pose.orientation.w=1.0;
-
-  tf::poseMsgToTF(pose,transform);
-  transform.child_frame_id_ = location.name;
-  transform.frame_id_ = location.frame;
-  transform.stamp_ = ros::Time::now();
-
-  tf_mutex.lock();
-  m_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
-  tf_mutex.unlock();
-
-  pose=location.approach_relative_pose;
-  if (pose.orientation.x==0 &&
-      pose.orientation.y==0 &&
-      pose.orientation.z==0 &&
-      pose.orientation.w==0
-            )
-    pose.orientation.w=1.0;
-
-  tf::poseMsgToTF(pose,transform);
-  transform.child_frame_id_=location.name+"_approach";
-  transform.frame_id_=location.name;
-  transform.stamp_=ros::Time::now();
-  tf_mutex.lock();
-  m_approach_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
-  tf_mutex.unlock();
-
-  pose=location.leave_relative_pose;
-    if (pose.orientation.x == 0 &&
-        pose.orientation.y == 0 &&
-        pose.orientation.z == 0 &&
-        pose.orientation.w == 0 )
-      pose.orientation.w = 1.0;
-  tf::poseMsgToTF(pose,transform);
-  transform.child_frame_id_ = location.name+"_leave";
-  transform.frame_id_ = location.name;
-  transform.stamp_ = ros::Time::now();
-  tf_mutex.lock();
-  m_leave_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
-  tf_mutex.unlock();
 
 
 
@@ -660,10 +614,58 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
   else
   {
     ROS_WARN("The location %s was not added to the location manager", location_ptr->m_name.c_str());
-    return false;
   }
 
-  return true;
+  std::string prefix=get_ik_group?"":"FAIL/";
+
+  tf::StampedTransform transform;
+  geometry_msgs::Pose pose=location.pose;
+  if (pose.orientation.x == 0 &&
+      pose.orientation.y == 0 &&
+      pose.orientation.z == 0 &&
+      pose.orientation.w == 0     )
+    pose.orientation.w=1.0;
+
+  tf::poseMsgToTF(pose,transform);
+  transform.child_frame_id_ = location.name;
+  transform.frame_id_ = prefix+location.frame;
+  transform.stamp_ = ros::Time::now();
+
+  tf_mutex.lock();
+  m_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
+  tf_mutex.unlock();
+
+  pose=location.approach_relative_pose;
+  if (pose.orientation.x==0 &&
+      pose.orientation.y==0 &&
+      pose.orientation.z==0 &&
+      pose.orientation.w==0
+            )
+    pose.orientation.w=1.0;
+
+  tf::poseMsgToTF(pose,transform);
+  transform.child_frame_id_=prefix+location.name+"_approach";
+  transform.frame_id_=location.name;
+  transform.stamp_=ros::Time::now();
+  tf_mutex.lock();
+  m_approach_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
+  tf_mutex.unlock();
+
+  pose=location.leave_relative_pose;
+    if (pose.orientation.x == 0 &&
+        pose.orientation.y == 0 &&
+        pose.orientation.z == 0 &&
+        pose.orientation.w == 0 )
+      pose.orientation.w = 1.0;
+  tf::poseMsgToTF(pose,transform);
+  transform.child_frame_id_ = prefix+location.name+"_leave";
+  transform.frame_id_ = location.name;
+  transform.stamp_ = ros::Time::now();
+  tf_mutex.lock();
+  m_leave_transforms.insert(std::pair<std::string,tf::StampedTransform>(location.name,transform));
+  tf_mutex.unlock();
+
+  return get_ik_group;
 }
 
 bool LocationManager::addLocationsFromMsg(const std::vector<manipulation_msgs::Location>& locations)

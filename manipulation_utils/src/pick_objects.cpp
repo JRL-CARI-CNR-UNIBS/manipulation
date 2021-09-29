@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <manipulation_utils/pick_objects.h>
 
 #include <object_loader_msgs/AttachObject.h>
+#include <object_loader_msgs/ChangeColor.h>
 
 #include <moveit/planning_interface/planning_interface.h>
 #include <moveit_planning_helper/manage_trajectories.h>
@@ -55,7 +56,7 @@ namespace manipulation
     m_list_objects_srv = m_pnh.advertiseService("list_objects", &PickObjects::listObjectsCb, this);
     m_reset_srv = m_pnh.advertiseService("inboud/reset_box", &PickObjects::resetBoxesCb, this);
 
-
+    m_change_color_client = m_pnh.serviceClient<object_loader_msgs::ChangeColor>("/change_color");
     m_attach_object_srv = m_nh.serviceClient<object_loader_msgs::AttachObject>("/attach_object_to_link");
     m_attach_object_srv.waitForExistence();
 
@@ -201,6 +202,16 @@ namespace manipulation
         if (!m_boxes.find(box_name)->second->addObject(obj))
         {
           m_boxes.at(box_name)->removeObject(object.name);
+
+          object_loader_msgs::ChangeColor color_srv;
+          std_msgs::ColorRGBA color_msg;
+          color_msg.a=0.5;
+          color_msg.r=1.0;
+          color_msg.g=0.0;
+          color_msg.b=0.0;
+          color_srv.request.ids.push_back(object.name);
+          color_srv.request.colors.push_back(color_msg);
+          m_change_color_client.call(color_srv);
         }
         else
         {
@@ -343,10 +354,7 @@ namespace manipulation
       }
       else
       {
-        ROS_WARN("The goal has no object_name");
-        action_res.result = manipulation_msgs::PickObjectsResult::NoObjectsFound;
-        as->setAborted(action_res, "The goal has no object_type");
-        return;
+        ROS_DEBUG("The goal has no object_name");
       }
 
       //Check which boxes contain the objects of a predefined type,
@@ -592,7 +600,7 @@ namespace manipulation
       tf::poseEigenToMsg(m_locations.at(best_object_location_name)->getLocation(), target.pose);
       m_target_pub.publish(target);
 
-      ROS_INFO("Execute move to object position for picking. Group %s, object name %s", group_name.c_str(), best_object_name.c_str());
+      ROS_INFO("Execute move to object position for approach. Group %s, object name %s", group_name.c_str(), best_object_name.c_str());
       if (!execute(group_name, plan))
       {
         action_res.result = manipulation_msgs::PickObjectsResult::TrajectoryError;
@@ -613,12 +621,11 @@ namespace manipulation
 
       /* Move to Object */
 
-      /* Move to approach object */
       t_planning_init = ros::Time::now();
 
       ROS_INFO("Planning to object picking position. Group %s, Box name %s", group_name.c_str(), best_box_name.c_str());
       std::vector<std::string> obj_names;
-      obj_names.push_back(best_object_name);
+      obj_names.push_back(best_object_location_name);
       plan = planTo(group_name,
                     obj_names,
                     Location::Destination::To,
@@ -635,10 +642,6 @@ namespace manipulation
         as->setAborted(action_res, "error in planning to object");
         return;
       }
-
-      std::string best_object_name = selected_box->findObjectByGraspingLocation(best_object_location_name);
-      manipulation::ObjectPtr selected_object = selected_box->getObject(best_object_name);
-      manipulation::GraspPtr selected_grasp_pose = selected_object->getGrasp(best_object_location_name);
 
       t_planning = ros::Time::now();
       action_res.planning_duration += (t_planning - t_planning_init);
