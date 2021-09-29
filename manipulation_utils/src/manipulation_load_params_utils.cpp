@@ -180,7 +180,6 @@ InboundPickFromParam::InboundPickFromParam( const ros::NodeHandle &nh):
   add_box_client_ = nh_.serviceClient<manipulation_msgs::AddBoxes>("add_boxes");
   add_objs_client_ = nh_.serviceClient<manipulation_msgs::AddObjects>("add_objects");
   add_objs_to_scene_client_ = nh_.serviceClient<object_loader_msgs::AddObjects>("/add_object_to_scene");
-  change_color_client_ = nh_.serviceClient<object_loader_msgs::ChangeColor>("/change_color");
 
   ROS_INFO("Waiting for: %s server", add_objs_client_.getService().c_str());
   add_objs_client_.waitForExistence();
@@ -446,14 +445,7 @@ bool InboundPickFromParam::readObjectFromParam()
     } // locations are in frame name!!!
 
     // if manipulator is unable to manage the object, color it red
-    object_loader_msgs::ChangeColor color_srv;
-    std_msgs::ColorRGBA color_msg;
-    color_msg.a=0.5;
-    color_msg.r=1.0;
-    color_msg.g=0.0;
-    color_msg.b=0.0;
-    color_srv.request.ids.push_back(obj.name);
-    color_srv.request.colors.push_back(color_msg);
+
     add_objs_srv.at(box_name)->request.box_name = box_name;
     add_objs_srv.at(box_name)->request.add_objects.clear();
 
@@ -461,14 +453,9 @@ bool InboundPickFromParam::readObjectFromParam()
     if (!add_objs_client_.call(*add_objs_srv.at(box_name)))
     {
       ROS_WARN("Unable to load all the object ~/add_objects");
-      change_color_client_.call(color_srv);
       continue;
     }
 
-    if (add_objs_srv.at(box_name)->response.results != manipulation_msgs::AddObjects::Response::Success)
-    {
-      change_color_client_.call(color_srv);
-    }
   }
 
   return true;
