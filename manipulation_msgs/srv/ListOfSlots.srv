@@ -1,0 +1,6 @@
+---
+string[] slot_names
+string[] slot_groups
+string[] planning_groups
+int8[] slot_sizes
+int8[] slot_availabilities

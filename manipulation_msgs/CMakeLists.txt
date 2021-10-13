@@ -41,6 +41,7 @@ add_service_files(
   JobExecution.srv
   ListOfObjects.srv
   ListOfLocations.srv
+  ListOfSlots.srv
   GetLocationIkSolution.srv
   RemoveBoxes.srv
   RemoveLocations.srv

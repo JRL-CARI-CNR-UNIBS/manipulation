@@ -56,7 +56,8 @@ namespace manipulation
     m_add_slots_srv = m_pnh.advertiseService("add_slots",&PlaceObjects::addSlotsCb,this);
     m_remove_slots_srv = m_pnh.advertiseService("remove_slots",&PlaceObjects::removeSlotsCb,this);
     m_remove_obj_from_slot_srv = m_pnh.advertiseService("remove_obj_from_slot",&PlaceObjects::removeObjectFromSlotCb,this);
-    m_reset_slots_srv = m_pnh.advertiseService("outbound/reset_slot",&PlaceObjects::resetSlotsCb,this);
+    m_reset_slots_srv = m_pnh.advertiseService("outbound/reset_slot",&PlaceObjects::resetSlotsCb, this);
+    m_list_slots_srv = m_pnh.advertiseService("list_slots", &PlaceObjects::listOfSlotsCb,this);
 
     m_detach_object_srv = m_nh.serviceClient<object_loader_msgs::DetachObject>("detach_object_to_link");
     m_detach_object_srv.waitForExistence();
@@ -205,6 +206,23 @@ namespace manipulation
       }    
     }
 
+    return true;
+  }
+
+  bool PlaceObjects::listOfSlotsCb(manipulation_msgs::ListOfSlots::Request& /*req*/,
+                     manipulation_msgs::ListOfSlots::Response& res)
+  {
+    for (const std::pair<std::string,SlotsGroupPtr>& sg: m_slots_group)
+    {
+      for (const SlotPtr& s: sg.second->getAllSlots())
+      {
+        res.slot_names.push_back(s->getName());
+        res.slot_sizes.push_back(s->getSlotSize());
+        res.slot_availabilities.push_back(s->getSlotAvailability());
+        res.slot_groups.push_back(sg.second->getName());
+        res.planning_groups.push_back(sg.first);
+      }
+    }
     return true;
   }
 

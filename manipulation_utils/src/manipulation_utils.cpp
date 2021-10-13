@@ -353,6 +353,7 @@ bool Slot::getSlotAvailability()
   // = 1 it simulate a slot with that can contain a single element
   // > 1 it simulate a slot a slot that can contain multiple objects, 
   // such as a box where objects are placed in random order
+
   if (m_slot_size < 0)
     return true;
   

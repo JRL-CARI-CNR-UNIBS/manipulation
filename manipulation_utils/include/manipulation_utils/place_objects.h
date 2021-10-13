@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <manipulation_msgs/AddSlots.h>
 #include <manipulation_msgs/RemoveSlots.h>
 #include <manipulation_msgs/RemoveObjectFromSlot.h>
+#include <manipulation_msgs/ListOfSlots.h>
 #include <manipulation_msgs/ResetSlots.h>
 #include <manipulation_msgs/PlaceObjectsAction.h>
 
@@ -57,9 +58,11 @@ namespace manipulation
       ros::ServiceServer m_remove_slots_srv;
       ros::ServiceServer m_remove_obj_from_slot_srv;      
       ros::ServiceServer m_reset_slots_srv;
+      ros::ServiceServer m_list_slots_srv;
+
       ros::ServiceClient m_detach_object_srv;
       ros::ServiceClient m_remove_object_from_scene_srv;
-     
+
       std::map<std::string,SlotsGroupPtr> m_slots_group;
 
       tf::TransformBroadcaster m_broadcaster;
@@ -88,7 +91,10 @@ namespace manipulation
       bool removeObjectFromSlotCb(manipulation_msgs::RemoveObjectFromSlot::Request& req, 
                                   manipulation_msgs::RemoveObjectFromSlot::Response& res);
 
-      bool resetSlotsCb(manipulation_msgs::ResetSlots::Request& req, 
+      bool listOfSlotsCb(manipulation_msgs::ListOfSlots::Request& req,
+                         manipulation_msgs::ListOfSlots::Response& res);
+
+      bool resetSlotsCb(manipulation_msgs::ResetSlots::Request& req,
                         manipulation_msgs::ResetSlots::Response& res);
 
       void placeObjectGoalCb( const manipulation_msgs::PlaceObjectsGoalConstPtr& goal,
