@@ -184,6 +184,7 @@ namespace manipulation
           Eigen::Vector3d box_position=box_location->getLocation().translation();
           for (const std::string& grasp_name: obj->getGraspLocationNames())
           {
+            ROS_WARN("check distance between %s and %s",p.first.c_str(),grasp_name.c_str());
             Eigen::Vector3d grasp_position = getLocation(obj->getGrasp(grasp_name)->getLocationName())->getLocation().translation();
             if ((grasp_position-box_position).norm()<distance)
             {
@@ -196,6 +197,15 @@ namespace manipulation
       if ( box_name.empty() )
       {
         ROS_ERROR("There isn't any box for the object %s",obj->getName().c_str());
+        object_loader_msgs::ChangeColor color_srv;
+        std_msgs::ColorRGBA color_msg;
+        color_msg.a=0.5;
+        color_msg.r=1.0;
+        color_msg.g=0.0;
+        color_msg.b=0.0;
+        color_srv.request.ids.push_back(object.name);
+        color_srv.request.colors.push_back(color_msg);
+        m_change_color_client.call(color_srv);
       }
       else
       {
