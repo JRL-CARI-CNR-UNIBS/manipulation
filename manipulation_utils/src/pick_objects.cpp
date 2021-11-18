@@ -687,7 +687,7 @@ namespace manipulation
       /* Attach object */
 
       ros::Time t_grasp_init = ros::Time::now();
-      ros::Duration(0.5).sleep();
+      ros::Duration(0.15).sleep(); // REMOVE???
 
       object_loader_msgs::AttachObject attach_srv;
       attach_srv.request.obj_id = selected_object->getName();
@@ -743,7 +743,7 @@ namespace manipulation
         }
       }
 
-      ros::Duration(0.5).sleep(); // wait a certain amount of time before getting the robot CurrentState and planning to leave
+      ros::Duration(0.1).sleep(); // wait a certain amount of time before getting the robot CurrentState and planning to leave
 
       state = *m_groups.at(group_name)->getCurrentState();
       if (jmg)

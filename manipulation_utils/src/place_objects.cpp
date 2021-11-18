@@ -528,7 +528,7 @@ namespace manipulation
       /* Release object */
 
       ros::Time t_release_init = ros::Time::now();
-      ros::Duration(0.5).sleep();
+      ros::Duration(0.15).sleep();
 
       object_loader_msgs::DetachObject detach_srv;
       detach_srv.request.obj_id = object_name;
