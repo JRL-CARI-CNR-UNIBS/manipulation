@@ -306,15 +306,28 @@ namespace manipulation
   void PickObjects::pickObjectGoalCb(const manipulation_msgs::PickObjectsGoalConstPtr &goal,
                                      const std::string &group_name)
   {
+
+    // check if action server exists
     if (m_pick_servers.find(group_name) == m_pick_servers.end())
     {
       ROS_ERROR("PickObjectsAction server for group %s is not available.", group_name.c_str());
       return;
     }
 
+    // get action server
     manipulation_msgs::PickObjectsResult action_res;
     std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PickObjectsAction>> as = m_pick_servers.at(group_name);
 
+    // check if moveit is on
+    if (!m_groups.at(group_name)->startStateMonitor(2))
+    {
+      ROS_ERROR("%s: unable to get actual state", m_pnh.getNamespace().c_str());
+      action_res.result = manipulation_msgs::PickObjectsResult::SceneError;
+      as->setAborted(action_res, "unable to get actual state");
+      return;
+    }
+
+    // check if goal is well-formatted
     if (goal->object_names.size() == 0 && goal->object_types.size() == 0)
     {
       action_res.result = manipulation_msgs::PickObjectsResult::NoObjectsFound;
@@ -323,6 +336,7 @@ namespace manipulation
       return;
     }
 
+    // search which boxes containts at least one of the requested objects
     try
     {
       ros::Time t_start = ros::Time::now();
@@ -343,7 +357,7 @@ namespace manipulation
               possible_boxes_location_names.push_back(it->second->getLocationName());
 
               manipulation::ObjectPtr object = it->second->getObject(object_name);
-              std::vector<std::string> object_location_names = object->getGraspLocationNames();
+              std::vector<std::string> object_location_names = object->getGraspLocationNames(m_tool_names.at(group_name));
               if (object_location_names.size() != 0)
                 possible_object_location_names.insert(possible_object_location_names.end(),
                                                       object_location_names.begin(),
@@ -387,15 +401,9 @@ namespace manipulation
         as->setAborted(action_res, "no box found");
         return;
       }
-      ROS_INFO("Found %zu boxes", possible_boxes_location_names.size());
+      ROS_DEBUG("Found %zu boxes", possible_boxes_location_names.size());
 
-      if (!m_groups.at(group_name)->startStateMonitor(2))
-      {
-        ROS_ERROR("%s: unable to get actual state", m_pnh.getNamespace().c_str());
-        action_res.result = manipulation_msgs::PickObjectsResult::SceneError;
-        as->setAborted(action_res, "unable to get actual state");
-        return;
-      }
+
 
       std::string tool_name = m_tool_names.at(group_name);
 
@@ -423,7 +431,7 @@ namespace manipulation
       moveit::planning_interface::MoveItErrorCode result;
       Eigen::VectorXd box_approach_jconf;
 
-      /* Planning to approach position for picking object */
+      /* Planning to approach position of the best box for picking object */
 
       ros::Time t_planning_init = ros::Time::now();
       ROS_INFO("Planning to box approach position for object picking. Group %s", group_name.c_str());
@@ -496,7 +504,7 @@ namespace manipulation
         }
       }
 
-      /* Planning to picking object position */
+      /* Planning to reach approach pick position for the best object*/
 
       if (possible_object_location_names.size() != 0)
       {
@@ -525,7 +533,7 @@ namespace manipulation
 
           for (const manipulation::ObjectPtr &object : objects)
           {
-            std::vector<std::string> object_location_names = object->getGraspLocationNames();
+            std::vector<std::string> object_location_names = object->getGraspLocationNames(m_tool_names.at(group_name));
 
             for (const std::string &loc_name : object_location_names)
               ROS_INFO("Added to possible object location %s", loc_name.c_str());
@@ -682,6 +690,7 @@ namespace manipulation
       object_loader_msgs::AttachObject attach_srv;
       attach_srv.request.obj_id = selected_object->getName();
       attach_srv.request.link_name = selected_grasp_pose->getToolName();
+      ROS_DEBUG("attach object %s to %s. grasp %s", attach_srv.request.obj_id.c_str(), attach_srv.request.link_name.c_str(),best_object_location_name.c_str());
       if (!m_attach_object_srv.call(attach_srv))
       {
         action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;

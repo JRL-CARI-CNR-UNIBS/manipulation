@@ -134,12 +134,16 @@ Object::~Object()
   // nothing to do 
 }
 
-std::vector<std::string> Object::getGraspLocationNames()
+std::vector<std::string> Object::getGraspLocationNames(const std::string& tool_name)
 {
   std::vector<std::string> grasp_location_names;
 
   for (std::vector<GraspPtr>::iterator it = m_grasp.begin(); it != m_grasp.end(); ++it)
-    grasp_location_names.push_back((*it)->getLocationName());
+  {
+
+    if (tool_name.empty() or (*it)->getToolName().compare(tool_name)==0)
+      grasp_location_names.push_back((*it)->getLocationName());
+  }
   
   return grasp_location_names;
 }
