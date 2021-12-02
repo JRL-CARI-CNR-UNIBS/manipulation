@@ -107,7 +107,7 @@ namespace manipulation
 
     /* get the name of the grasping location
     */
-    std::vector<std::string> getGraspLocationNames();
+    std::vector<std::string> getGraspLocationNames(const std::string &tool_name="" );
 
     /* get the grasping location 
     */

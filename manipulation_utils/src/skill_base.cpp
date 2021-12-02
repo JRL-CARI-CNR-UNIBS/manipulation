@@ -153,8 +153,12 @@ namespace manipulation
                               const std::string& tool_id,
                               const std::string& property_id  )
   {
-    ros::ServiceClient job_srv = m_pnh.serviceClient<manipulation_msgs::JobExecution>("job/"+job_executor_name); 
-    job_srv.waitForExistence();
+    ros::ServiceClient job_srv = m_pnh.serviceClient<manipulation_msgs::JobExecution>(job_executor_name);
+    if (not job_srv.waitForExistence(ros::Duration(10)))
+    {
+      ROS_ERROR("Unable to connect to %s service server during job execution of skill %s",job_srv.getService().c_str(), job_executor_name.c_str());
+      return false;
+    }
 
     manipulation_msgs::JobExecution job_req;
     job_req.request.skill_name = m_skill_name;
