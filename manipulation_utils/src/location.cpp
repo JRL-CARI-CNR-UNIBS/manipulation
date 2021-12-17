@@ -969,31 +969,48 @@ bool LocationManager::ik( const std::string& group_name,
   {
     if (solutions.size()>=ntrial)
       break;
-    if (solutions.size()==0 && iter>ntrial*5)
-      break;
 
-    if (stall++>m_max_stall_iter)
+    if (stall>m_max_stall_iter)
+    {
+      if (solutions.size()==0)
+        ROS_ERROR("reach stall generations without any solution");
+      else
+        ROS_DEBUG("reach stall generation");
       break;
-
-    if (iter<n_seed)
-    {
-      state.setJointGroupPositions(jmg,seed.at(iter));
-    }
-    else if (iter==n_seed)
-    {
-      state = *group->getCurrentState();
-    }
-    else
-    {
-      state.setToRandomPositions();
     }
 
     Eigen::VectorXd js;
     Eigen::VectorXd start;
-    state.copyJointGroupPositions(group_name,start);
-    if (m_chains.at(group_name)->computeLocalIk(js,T_w_a,start,1e-4,ros::Duration(0.002)))
+
+    if (iter<n_seed)
     {
-      bool out_of_bound = false;
+      start=seed.at(iter);
+    }
+    else if (iter==n_seed)
+    {
+      state = act_joints_conf;
+    }
+    else
+    {
+      state.setToRandomPositions();
+      state.copyJointGroupPositions(group_name,start);
+    }
+
+    bool out_of_bound = false;
+    for (unsigned int iax=0; iax<lower_bound.size(); iax++)
+    {
+      if ( (start(iax)<lower_bound.at(iax)) || (start(iax)>upper_bound.at(iax)))
+      {
+        out_of_bound=true;
+        continue;
+      }
+    }
+    if (out_of_bound)
+      continue;
+
+    if (m_chains.at(group_name)->computeLocalIk(js,T_w_a,start,1e-6,ros::Duration(0.005)))
+    {
+      out_of_bound = false;
       for (unsigned int iax=0; iax<lower_bound.size(); iax++)
       {
         if ( (js(iax)<lower_bound.at(iax)) || (js(iax)>upper_bound.at(iax)))
@@ -1002,9 +1019,10 @@ bool LocationManager::ik( const std::string& group_name,
           continue;
         }
       }
+
       if (out_of_bound)
         continue;
-
+      stall++;
       state.setJointGroupPositions(group_name,js);
 
       if (!state.satisfiesBounds())
@@ -1014,53 +1032,55 @@ bool LocationManager::ik( const std::string& group_name,
       if (!planning_scene->isStateValid(state,group_name))
         continue;
 
-      double dist = (js-act_joints_conf).norm();
 
-      if (solutions.size() == 0)
+
+      bool is_diff = true;
+      for (const std::pair<double,Eigen::VectorXd>& sol: solutions)
       {
-        stall=0;
-        std::vector<Eigen::VectorXd> multiturn = m_chains.at(group_name)->getMultiplicity(js);
-        for (const Eigen::VectorXd& tmp: multiturn)
+        if ((sol.second-js).norm()<TOLERANCE)
         {
-          state.setJointGroupPositions(group_name,tmp);
-          if (!state.satisfiesBounds())
-            continue;
-
-          double dist = (m_preferred_configuration_weight.at(group_name).cwiseProduct(tmp-m_preferred_configuration.at(group_name))).norm();
-          solutions.insert(std::pair<double,Eigen::VectorXd>(dist,tmp));
+          is_diff = false;
+          break;
         }
-
-        found = true;
       }
-      else
+      if (not is_diff)
+        continue;
+
+      stall=0;
+      std::vector<Eigen::VectorXd> multiturn = m_chains.at(group_name)->getMultiplicity(js);
+      is_diff = true;
+      for (const Eigen::VectorXd& tmp: multiturn)
       {
-        bool is_diff = true;
+        bool out_of_bound = false;
+        for (unsigned int iax=0; iax<lower_bound.size(); iax++)
+        {
+          if ( (tmp(iax)<lower_bound.at(iax)) || (tmp(iax)>upper_bound.at(iax)))
+          {
+            out_of_bound=true;
+            continue;
+          }
+        }
+        if (out_of_bound)
+          continue;
+
         for (const std::pair<double,Eigen::VectorXd>& sol: solutions)
         {
-          if ((sol.second-js).norm()<TOLERANCE)
+          if ((sol.second-tmp).norm()<TOLERANCE)
           {
             is_diff = false;
             break;
           }
         }
-        if (is_diff)
-        {
-          stall=0;
-          std::vector<Eigen::VectorXd> multiturn = m_chains.at(group_name)->getMultiplicity(js);
-          for (const Eigen::VectorXd& tmp: multiturn)
-          {
-            state.setJointGroupPositions(group_name,tmp);
-            if (!state.satisfiesBounds())
-              continue;
+        if (not is_diff)
+          continue;
 
-            double dist = (m_preferred_configuration_weight.at(group_name).cwiseProduct( tmp - m_preferred_configuration.at(group_name) )).norm();
-            solutions.insert(std::pair<double,Eigen::VectorXd>(dist,tmp));
-          }
-          found = true;
-        }
+        double dist = (m_preferred_configuration_weight.at(group_name).cwiseProduct( tmp - m_preferred_configuration.at(group_name) )).norm();
+        solutions.insert(std::pair<double,Eigen::VectorXd>(dist,tmp));
       }
-    }
+      found = true;
 
+
+    }
   }
 
   sols.clear();
