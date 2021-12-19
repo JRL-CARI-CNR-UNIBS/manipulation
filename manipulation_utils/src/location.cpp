@@ -393,10 +393,8 @@ bool LocationManager::listLocationsCb(manipulation_msgs::ListOfLocations::Reques
   for (const std::pair<std::string,LocationPtr>& p: m_locations)
   {
     res.locations.push_back(p.first);
-    ROS_INFO("Location %s ik solutions",p.first.c_str());
     for (const std::string& group: m_group_names)
     {
-      ROS_INFO("%s: %zu solutions",group.c_str(),p.second->getLocationIk(group).size());
       res.resume+=p.first+"; "+group+"; "+std::to_string(p.second->getLocationIk(group).size())+"\n";
     }
   }
