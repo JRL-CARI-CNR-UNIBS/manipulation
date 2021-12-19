@@ -71,6 +71,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define N_MAX_ITER 20000
 #define N_ITER 200
 #define TOLERANCE 1e-3
+#define IK_CLOSE_LOCATION 0.2
 
 namespace manipulation 
 {

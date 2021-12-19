@@ -10,6 +10,10 @@ if __name__ == "__main__":
     rospy.wait_for_service('/go_to_location_server/list_locations')
 
     length =0;
+    expected_execution_duration = 0
+    actual_duration = 0
+    planning_duration = 0
+
     n_planning=0
     n_fails=0
     while not rospy.is_shutdown():
@@ -39,6 +43,14 @@ if __name__ == "__main__":
             break
         else:
             length=(res.path_length+length*n_planning)/(n_planning+1.0)
+            expected_execution_duration = (res.expected_execution_duration.to_sec()+expected_execution_duration*n_planning)/(n_planning+1.0)
+            actual_duration = (res.actual_duration.to_sec()+actual_duration*n_planning)/(n_planning+1.0)
+            planning_duration = (res.planning_duration.to_sec()+planning_duration*n_planning)/(n_planning+1.0)
             n_planning+=1
-            rospy.loginfo("mean length = "+str(length)+" successful planning = "+str(n_planning)+ " failed planning = "+str(n_fails))
+            rospy.loginfo("mean length                      = "+str(length))
+            rospy.loginfo("mean expected_execution_duration = "+str(expected_execution_duration))
+            rospy.loginfo("mean actual_duration             = "+str(actual_duration))
+            rospy.loginfo("mean planning_duration           = "+str(planning_duration))
+            rospy.loginfo("successful planning              = "+str(n_planning))
+            rospy.loginfo("failed planning                  = "+str(n_fails))
         time.sleep(1)

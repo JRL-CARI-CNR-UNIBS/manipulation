@@ -389,8 +389,17 @@ bool LocationManager::removeLocationsCb(manipulation_msgs::RemoveLocations::Requ
 bool LocationManager::listLocationsCb(manipulation_msgs::ListOfLocations::Request &req,
                                       manipulation_msgs::ListOfLocations::Response &res)
 {
+  res.resume="Location; group; ik solutions\n";
   for (const std::pair<std::string,LocationPtr>& p: m_locations)
+  {
     res.locations.push_back(p.first);
+    ROS_INFO("Location %s ik solutions",p.first.c_str());
+    for (const std::string& group: m_group_names)
+    {
+      ROS_INFO("%s: %zu solutions",group.c_str(),p.second->getLocationIk(group).size());
+      res.resume+=p.first+"; "+group+"; "+std::to_string(p.second->getLocationIk(group).size())+"\n";
+    }
+  }
   return true;
 }
 
@@ -569,24 +578,44 @@ bool LocationManager::addLocationFromMsg(const manipulation_msgs::Location& loca
 
     if (compute_ik)
     {
+      // take seed from close locations
+      for (const std::pair<std::string,LocationPtr>& loc: m_locations)
+      {
+        if ( (location_ptr->getLocation().translation()-loc.second->getLocation().translation()).norm()<IK_CLOSE_LOCATION )
+        {
+          std::vector<Eigen::VectorXd> loc_seed = loc.second->getLocationIk(group.first);
+          seed.insert(seed.end(), loc_seed.begin(), loc_seed.end());
+          ROS_DEBUG("computing ik for %s: taking %zu seeds from %s",
+                    location.name.c_str(),
+                    loc_seed.size(),
+                    loc.first.c_str());
+        }
+      }
+      ROS_DEBUG("computing ik for %s: found %zu seeds",
+               location.name.c_str(),
+               seed.size());
+
+
       if (!ik(group.first,location_ptr->m_T_w_location,seed,location_sols,m_ik_sol_number))
       {
         ROS_WARN("Location %s can't be reached by group %s",location_ptr->m_name.c_str(),group.first.c_str());
         continue;
       }
+      ROS_INFO("computing ik for %s: found %zu solutions",
+               location.name.c_str(),
+               location_sols.size());
       for (const Eigen::VectorXd& q: location_sols)
       {
-        std::vector<Eigen::VectorXd> tmp_sols;
-        std::vector<Eigen::VectorXd> tmp_approach_sols;
-        std::vector<Eigen::VectorXd> tmp_leave_sols;
-        tmp_sols.push_back(q);
-        if (!ik(group.first,location_ptr->m_T_w_approach,tmp_sols,tmp_approach_sols,1))
+        Eigen::VectorXd q_approach;
+        Eigen::VectorXd q_leave;
+        // compute ik for approach and leave, save if local ik does not fail
+        if (not m_chains.at(group.first)->computeLocalIk(q_approach,location_ptr->m_T_w_approach,q,1e-6,ros::Duration(0.005)))
           continue;
-        if (!ik(group.first,location_ptr->m_T_w_leave,tmp_sols,tmp_leave_sols,1))
+        if (not m_chains.at(group.first)->computeLocalIk(q_leave,location_ptr->m_T_w_leave,q,1e-6,ros::Duration(0.005)))
           continue;
-        sols.push_back(tmp_sols.at(0));
-        approach_sols.push_back(tmp_approach_sols.at(0));
-        leave_sols.push_back(tmp_leave_sols.at(0));
+        sols.push_back(q);
+        approach_sols.push_back(q_approach);
+        leave_sols.push_back(q_leave);
       }
 
       std::string what;
@@ -973,9 +1002,9 @@ bool LocationManager::ik( const std::string& group_name,
     if (stall>m_max_stall_iter)
     {
       if (solutions.size()==0)
-        ROS_ERROR("reach stall generations without any solution");
+        ROS_DEBUG("reach stall generations without any solution");
       else
-        ROS_DEBUG("reach stall generation");
+        ROS_DEBUG("reach stall generation (iteration %u)",iter);
       break;
     }
 
@@ -988,7 +1017,7 @@ bool LocationManager::ik( const std::string& group_name,
     }
     else if (iter==n_seed)
     {
-      state = act_joints_conf;
+      start = act_joints_conf;
     }
     else
     {
@@ -1002,7 +1031,7 @@ bool LocationManager::ik( const std::string& group_name,
       if ( (start(iax)<lower_bound.at(iax)) || (start(iax)>upper_bound.at(iax)))
       {
         out_of_bound=true;
-        continue;
+        break;
       }
     }
     if (out_of_bound)
@@ -1016,13 +1045,13 @@ bool LocationManager::ik( const std::string& group_name,
         if ( (js(iax)<lower_bound.at(iax)) || (js(iax)>upper_bound.at(iax)))
         {
           out_of_bound=true;
-          continue;
+          break;
         }
       }
 
+      stall++;
       if (out_of_bound)
         continue;
-      stall++;
       state.setJointGroupPositions(group_name,js);
 
       if (!state.satisfiesBounds())
@@ -1048,7 +1077,6 @@ bool LocationManager::ik( const std::string& group_name,
 
       stall=0;
       std::vector<Eigen::VectorXd> multiturn = m_chains.at(group_name)->getMultiplicity(js);
-      is_diff = true;
       for (const Eigen::VectorXd& tmp: multiturn)
       {
         bool out_of_bound = false;
@@ -1057,12 +1085,13 @@ bool LocationManager::ik( const std::string& group_name,
           if ( (tmp(iax)<lower_bound.at(iax)) || (tmp(iax)>upper_bound.at(iax)))
           {
             out_of_bound=true;
-            continue;
+            break;
           }
         }
         if (out_of_bound)
           continue;
 
+        is_diff = true;
         for (const std::pair<double,Eigen::VectorXd>& sol: solutions)
         {
           if ((sol.second-tmp).norm()<TOLERANCE)
