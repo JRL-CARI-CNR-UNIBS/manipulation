@@ -32,8 +32,7 @@ if __name__ == "__main__":
         req.location_name = location_name
         req.group_name = group
         resp = ik_locations_srv(req)
-        print(resp)
-
+        
         ik_sol=moveit_msgs.msg.DisplayRobotState()
         ik_sol.state.joint_state.name=['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
         ik_sol.state.joint_state.velocity= [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -45,7 +44,6 @@ if __name__ == "__main__":
         while not rospy.is_shutdown():
             ik_sol.state.joint_state.position=resp.ik_solutions[idx].configuration
             state_pub.publish(ik_sol)
-            print(ik_sol)
             r.sleep()
             idx+=1
             if (idx==len(resp.ik_solutions)):
