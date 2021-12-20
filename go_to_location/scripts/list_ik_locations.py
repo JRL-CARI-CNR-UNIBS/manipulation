@@ -15,7 +15,9 @@ if __name__ == "__main__":
     service_list = rosservice.get_service_list()
     for service in service_list:
         if "list_locations" in service:
+            print("***********************************")
             print(service)
+            print("***********************************")
             rospy.wait_for_service(service)
 
             try:
