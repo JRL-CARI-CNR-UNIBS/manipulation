@@ -184,7 +184,7 @@ namespace manipulation
           Eigen::Vector3d box_position=box_location->getLocation().translation();
           for (const std::string& grasp_name: obj->getGraspLocationNames())
           {
-            ROS_WARN("check distance between %s and %s",p.first.c_str(),grasp_name.c_str());
+            ROS_DEBUG_NAMED("pick_objects","check distance between %s and %s",p.first.c_str(),grasp_name.c_str());
             Eigen::Vector3d grasp_position = getLocation(obj->getGrasp(grasp_name)->getLocationName())->getLocation().translation();
             if ((grasp_position-box_position).norm()<distance)
             {
