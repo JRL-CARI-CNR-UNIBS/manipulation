@@ -94,6 +94,31 @@ void Location::addLeaveIk(const std::string &group_name, const std::vector<Eigen
     m_leave_location_configurations.at(group_name) = solutions;
 }
 
+std::vector<Eigen::VectorXd> Location::getLocationIk(const std::string& group_name)
+{
+  std::vector<Eigen::VectorXd> sol;
+  if (m_location_configurations.find(group_name)==m_location_configurations.end())
+    return sol;
+
+  return m_location_configurations.at(group_name);
+}
+std::vector<Eigen::VectorXd> Location::getApproachIk(const std::string& group_name)
+{
+  std::vector<Eigen::VectorXd> sol;
+  if (m_approach_location_configurations.find(group_name)==m_approach_location_configurations.end())
+    return sol;
+
+  return m_approach_location_configurations.at(group_name);
+}
+std::vector<Eigen::VectorXd> Location::getLeaveIk  (const std::string& group_name)
+{
+  std::vector<Eigen::VectorXd> sol;
+  if (m_leave_location_configurations.find(group_name)==m_leave_location_configurations.end())
+    return sol;
+
+  return m_leave_location_configurations.at(group_name);
+}
+
 
 
 // LocationManager class

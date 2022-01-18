@@ -102,9 +102,9 @@ public:
   Eigen::Affine3d getApproach(){return m_T_w_approach;}
   Eigen::Affine3d getLeave  (){return m_T_w_leave;}
 
-  std::vector<Eigen::VectorXd> getLocationIk(const std::string& group_name){return m_location_configurations.at(group_name);}
-  std::vector<Eigen::VectorXd> getApproachIk(const std::string& group_name){return m_approach_location_configurations.at(group_name);}
-  std::vector<Eigen::VectorXd> getLeaveIk  (const std::string& group_name){return m_leave_location_configurations.at(group_name);}
+  std::vector<Eigen::VectorXd> getLocationIk(const std::string& group_name);
+  std::vector<Eigen::VectorXd> getApproachIk(const std::string& group_name);
+  std::vector<Eigen::VectorXd> getLeaveIk  (const std::string& group_name);
 
 protected:
 //  Status m_status;
