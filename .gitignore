@@ -3,3 +3,4 @@
 *.kdev4
 *.autosave
 *matlab_msg_gen*
+*.vscode
