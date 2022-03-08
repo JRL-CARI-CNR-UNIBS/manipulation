@@ -898,7 +898,6 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
     }
     ROS_DEBUG("Adding %zu goals to the Planning Pipeline.",req.goal_constraints.size());
 
-
     if (!m_planning_pipeline.at(group_name)->generatePlan(planning_scene, req, res))
     {
       ROS_ERROR("Could not compute plan successfully");
@@ -972,18 +971,26 @@ double LocationManager::computeDistanceBetweenLocations(const std::string& locat
   std::vector<Eigen::VectorXd> jconfs_location_name;
   if (getIkSolForLocation(location_name, destination, group_name, jconfs_location_name))
   {
-    std::vector<double> jconf_dist;
-    for (const Eigen::VectorXd& jconf_single: jconfs_location_name )
+    if (jconfs_location_name.size() == 0)
     {
-      if (jconf_single.size() == jconf.size())
-        jconf_dist.push_back((jconf_single - jconf).lpNorm<1>());
-      else
-      {
-        ROS_ERROR("Can't compute the distance between joint configuration.");
-        return std::numeric_limits<double>::quiet_NaN();
-      }
+      ROS_ERROR("Can't compute the distance between joint configuration.");
+      return std::numeric_limits<double>::quiet_NaN();
     }
-    return *std::min_element(jconf_dist.begin(),jconf_dist.end());
+    else
+    {
+      std::vector<double> jconf_dist;
+      for (const Eigen::VectorXd& jconf_single: jconfs_location_name )
+      {
+        if (jconf_single.size() == jconf.size())
+          jconf_dist.push_back((jconf_single - jconf).lpNorm<1>());
+        else
+        {
+          ROS_ERROR("Can't compute the distance between joint configuration.");
+          return std::numeric_limits<double>::quiet_NaN();
+        }
+      }
+      return *std::min_element(jconf_dist.begin(),jconf_dist.end());
+    }
   }
   else
   {
