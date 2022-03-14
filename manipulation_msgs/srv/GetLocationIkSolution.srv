@@ -4,3 +4,4 @@ string group_name
 Configuration[] ik_solutions
 Configuration[] approach_ik_solutions
 Configuration[] leave_ik_solutions
+float64[] manipulability_volumes
