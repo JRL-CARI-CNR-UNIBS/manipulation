@@ -1067,6 +1067,8 @@ bool LocationManager::ik( const std::string& group_name,
     if (out_of_bound)
       continue;
 
+    stall++;
+
     if (m_chains.at(group_name)->computeLocalIk(js,T_w_a,start,1e-6,ros::Duration(0.005)))
     {
       out_of_bound = false;
@@ -1079,7 +1081,6 @@ bool LocationManager::ik( const std::string& group_name,
         }
       }
 
-      stall++;
       if (out_of_bound)
         continue;
       state.setJointGroupPositions(group_name,js);
