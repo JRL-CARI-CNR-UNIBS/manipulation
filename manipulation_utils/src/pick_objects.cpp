@@ -38,8 +38,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace manipulation
 {
   PickObjects::PickObjects(const ros::NodeHandle &nh,
-                           const ros::NodeHandle &pnh) :
-    SkillBase(nh, pnh, "pick")
+                           const ros::NodeHandle &pnh,
+                           const std::string reference_frame) :
+    SkillBase(nh, pnh, "pick", reference_frame)
   {
     // nothing to do here
   }

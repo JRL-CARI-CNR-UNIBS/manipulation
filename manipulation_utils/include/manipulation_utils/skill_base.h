@@ -92,7 +92,8 @@ namespace manipulation
     public:
       SkillBase(const ros::NodeHandle& nh,
                 const ros::NodeHandle& pnh,
-                const std::string& skill_name);
+                const std::string& skill_name,
+                const std::string reference_frame = "world");
 
       bool init();
 

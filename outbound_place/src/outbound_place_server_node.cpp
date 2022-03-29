@@ -39,8 +39,14 @@ int main(int argc, char **argv)
   ros::AsyncSpinner spinner(4);
   spinner.start();
 
+  std::string reference_frame = "world";
+  if (!pnh.getParam("reference_frame",reference_frame))
+  {
+    ROS_ERROR("refrence frame not set, set world");
+  }
+
   ROS_INFO("Creating PlaceOject server...");
-  manipulation::PlaceObjects place(nh,pnh);
+  manipulation::PlaceObjects place(nh,pnh,reference_frame);
 
   ros::ServiceClient ps_client = nh.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
   ps_client.waitForExistence();

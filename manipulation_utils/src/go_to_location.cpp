@@ -31,18 +31,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace manipulation
 {
 
-GoToLocation::GoToLocation( const ros::NodeHandle& nh, 
-                            const ros::NodeHandle& pnh):
-                            m_nh(nh),
-                            m_pnh(pnh),
-                            SkillBase(nh,pnh,"go_to")
+GoToLocation::GoToLocation(const ros::NodeHandle& nh,
+                           const ros::NodeHandle& pnh,
+                           const std::string reference_frame):
+  m_nh(nh),
+  m_pnh(pnh),
+  SkillBase(nh,pnh,"go_to",reference_frame)
 {
-  // nothing to do here    
+  // nothing to do here
 }
 
 bool GoToLocation::init()
 {
-  if (!SkillBase::init())  
+  if (!SkillBase::init())
     return false;
 
   if(m_group_names.size() > 0)
@@ -60,7 +61,7 @@ bool GoToLocation::init()
   }
   else
   {
-    ROS_ERROR("The group_names vector is empty, no ActionServer can be created for GoToLocation Skill."); 
+    ROS_ERROR("The group_names vector is empty, no ActionServer can be created for GoToLocation Skill.");
     return false;
   }
   
@@ -107,7 +108,7 @@ void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,
     }
 
 
-    // Set the controller for the movement 
+    // Set the controller for the movement
     if(!goal->to_loc_ctrl_id.empty())
     {
       if (!setController( goal->to_loc_ctrl_id ))
@@ -180,7 +181,7 @@ void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,
       return;
     }
 
-    // Set the desired tool behaviour 
+    // Set the desired tool behaviour
     if(!goal->property_exec_id.empty())
     {
       if (!jobExecute(goal->job_exec_name,goal->tool_id,goal->property_exec_id) )
