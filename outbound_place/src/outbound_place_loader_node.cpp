@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 std::shared_ptr<manipulation::OutboundPlaceFromParam> oub;
 
-bool addObjectsCb(std_srvs::SetBoolRequest& req, 
+bool addObjectsCb(std_srvs::SetBoolRequest& req,
                   std_srvs::SetBoolResponse& res)
 {
   if (!oub->readSlotsFromParam())
@@ -46,13 +46,14 @@ bool addObjectsCb(std_srvs::SetBoolRequest& req,
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "outbound_place_loader");
-  ros::NodeHandle nh("outbound_place_server");
+  ros::NodeHandle server_nh("outbound_place_server");
+  ros::NodeHandle pnh("outbound_place_loader");
 
-  oub = std::make_shared<manipulation::OutboundPlaceFromParam>(nh);
+  oub = std::make_shared<manipulation::OutboundPlaceFromParam>(server_nh);
 
   // Groups need to be loaded before the slots because it supposed that a slot is
   // always belonging to a slots group
-  
+
  if (!oub->readSlotsGroupFromParam())
   {
     ROS_ERROR("Unable to load slots group");
@@ -66,7 +67,7 @@ int main(int argc, char **argv)
 
   ROS_INFO("Outbound slot loaded");
 
-  nh.advertiseService("outbound/add_slots",&addObjectsCb);
+  ros::ServiceServer s = pnh.advertiseService("add_slots",&addObjectsCb);
   ros::spin();
   return 0;
 }
