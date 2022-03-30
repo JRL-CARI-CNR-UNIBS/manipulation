@@ -46,9 +46,10 @@ bool addObjectsCb(std_srvs::SetBoolRequest& req,
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "inbound_pick_loader");
-  ros::NodeHandle nh("inbound_pick_server");
+  ros::NodeHandle server_nh("inbound_pick_server");
+  ros::NodeHandle pnh("inbound_pick_loader");
 
-  inb = std::make_shared<manipulation::InboundPickFromParam>(nh);
+  inb = std::make_shared<manipulation::InboundPickFromParam>(server_nh);
 
   // Boxes need to be loaded before the Objects because it supposed that objects are
   // always contained by a box
@@ -66,7 +67,7 @@ int main(int argc, char **argv)
 
   ROS_INFO("Inbound boxed loaded");
 
-  nh.advertiseService("inbound/add_objects",&addObjectsCb);
+  ros::ServiceServer s=pnh.advertiseService("add_objects",&addObjectsCb);
   ros::spin();
   return 0;
 }
