@@ -122,9 +122,9 @@ std::vector<Eigen::VectorXd> Location::getLeaveIk  (const std::string& group_nam
 
 
 // LocationManager class
-LocationManager::LocationManager( const ros::NodeHandle& nh):
+LocationManager::LocationManager(const ros::NodeHandle& nh, const std::string reference_frame):
   m_nh(nh),
-  world_frame("world")
+  world_frame(reference_frame)
 {
   // nothing to do
 }

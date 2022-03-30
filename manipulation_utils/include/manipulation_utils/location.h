@@ -126,7 +126,7 @@ class LocationManager
 {
 public:
 
-  LocationManager(const ros::NodeHandle& nh);
+  LocationManager(const ros::NodeHandle& nh, const std::string reference_frame = "world");
   ~LocationManager();
   bool init();
 

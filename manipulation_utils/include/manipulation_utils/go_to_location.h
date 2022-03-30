@@ -44,7 +44,8 @@ protected:
 
 public:
   GoToLocation( const ros::NodeHandle& nh,
-                const ros::NodeHandle& pnh);
+                const ros::NodeHandle& pnh,
+                const std::string reference_frame = "world");
 
   bool init();
 

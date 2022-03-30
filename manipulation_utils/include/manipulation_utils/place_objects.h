@@ -45,64 +45,65 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace manipulation
 {
-  class PlaceObjects: public SkillBase
-  {
-    protected:
-      
-      ros::NodeHandle m_nh;
-      ros::NodeHandle m_pnh;
+class PlaceObjects: public SkillBase
+{
+protected:
 
-      ros::ServiceServer m_add_slots_group_srv;
-      ros::ServiceServer m_remove_slots_group_srv;
-      ros::ServiceServer m_add_slots_srv;
-      ros::ServiceServer m_remove_slots_srv;
-      ros::ServiceServer m_remove_obj_from_slot_srv;      
-      ros::ServiceServer m_reset_slots_srv;
-      ros::ServiceServer m_list_slots_srv;
+  ros::NodeHandle m_nh;
+  ros::NodeHandle m_pnh;
 
-      ros::ServiceClient m_detach_object_srv;
-      ros::ServiceClient m_remove_object_from_scene_srv;
+  ros::ServiceServer m_add_slots_group_srv;
+  ros::ServiceServer m_remove_slots_group_srv;
+  ros::ServiceServer m_add_slots_srv;
+  ros::ServiceServer m_remove_slots_srv;
+  ros::ServiceServer m_remove_obj_from_slot_srv;
+  ros::ServiceServer m_reset_slots_srv;
+  ros::ServiceServer m_list_slots_srv;
 
-      std::map<std::string,SlotsGroupPtr> m_slots_group;
+  ros::ServiceClient m_detach_object_srv;
+  ros::ServiceClient m_remove_object_from_scene_srv;
 
-      tf::TransformBroadcaster m_broadcaster;
-      std::map<std::string,tf::Transform> m_tf;
+  std::map<std::string,SlotsGroupPtr> m_slots_group;
 
-      std::map<std::string,std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PlaceObjectsAction>>> m_place_servers;
+  tf::TransformBroadcaster m_broadcaster;
+  std::map<std::string,tf::Transform> m_tf;
 
-    public:
-      PlaceObjects( const ros::NodeHandle& nh,
-                    const ros::NodeHandle& pnh);
+  std::map<std::string,std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PlaceObjectsAction>>> m_place_servers;
+
+public:
+  PlaceObjects( const ros::NodeHandle& nh,
+                const ros::NodeHandle& pnh,
+                const std::string reference_frame = "world");
   
-      bool init();
+  bool init();
 
-      bool addSlotsGroupCb( manipulation_msgs::AddSlotsGroup::Request& req, 
-                            manipulation_msgs::AddSlotsGroup::Response& res);
+  bool addSlotsGroupCb( manipulation_msgs::AddSlotsGroup::Request& req,
+                        manipulation_msgs::AddSlotsGroup::Response& res);
 
-      bool removeSlotsGroupCb(manipulation_msgs::RemoveSlotsGroup::Request& req, 
-                              manipulation_msgs::RemoveSlotsGroup::Response& res);
+  bool removeSlotsGroupCb(manipulation_msgs::RemoveSlotsGroup::Request& req,
+                          manipulation_msgs::RemoveSlotsGroup::Response& res);
 
-      bool addSlotsCb(manipulation_msgs::AddSlots::Request& req, 
-                      manipulation_msgs::AddSlots::Response& res);
+  bool addSlotsCb(manipulation_msgs::AddSlots::Request& req,
+                  manipulation_msgs::AddSlots::Response& res);
 
-      bool removeSlotsCb( manipulation_msgs::RemoveSlots::Request& req, 
-                          manipulation_msgs::RemoveSlots::Response& res);
+  bool removeSlotsCb( manipulation_msgs::RemoveSlots::Request& req,
+                      manipulation_msgs::RemoveSlots::Response& res);
 
-      bool removeObjectFromSlotCb(manipulation_msgs::RemoveObjectFromSlot::Request& req, 
-                                  manipulation_msgs::RemoveObjectFromSlot::Response& res);
+  bool removeObjectFromSlotCb(manipulation_msgs::RemoveObjectFromSlot::Request& req,
+                              manipulation_msgs::RemoveObjectFromSlot::Response& res);
 
-      bool listOfSlotsCb(manipulation_msgs::ListOfSlots::Request& req,
-                         manipulation_msgs::ListOfSlots::Response& res);
+  bool listOfSlotsCb(manipulation_msgs::ListOfSlots::Request& req,
+                     manipulation_msgs::ListOfSlots::Response& res);
 
-      bool resetSlotsCb(manipulation_msgs::ResetSlots::Request& req,
-                        manipulation_msgs::ResetSlots::Response& res);
+  bool resetSlotsCb(manipulation_msgs::ResetSlots::Request& req,
+                    manipulation_msgs::ResetSlots::Response& res);
 
-      void placeObjectGoalCb( const manipulation_msgs::PlaceObjectsGoalConstPtr& goal,
-                              const std::string& group_name);
+  void placeObjectGoalCb( const manipulation_msgs::PlaceObjectsGoalConstPtr& goal,
+                          const std::string& group_name);
 
-      void publishTF();
- 
-  };
+  void publishTF();
+
+};
 
 
 }
