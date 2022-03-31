@@ -172,7 +172,6 @@ protected:
   std::map<std::string,moveit::planning_interface::MoveGroupInterfacePtr> m_groups;
   std::map<std::string,moveit::core::JointModelGroup*> m_joint_models;
 
-  std::string world_frame;
   std::vector<std::string> m_group_names;
   std::vector<std::string> m_request_adapters;
 

@@ -124,7 +124,7 @@ std::vector<Eigen::VectorXd> Location::getLeaveIk  (const std::string& group_nam
 // LocationManager class
 LocationManager::LocationManager(const ros::NodeHandle& nh, const std::string reference_frame):
   m_nh(nh),
-  world_frame(reference_frame)
+  m_world_frame(reference_frame)
 {
   // nothing to do
 }
@@ -248,7 +248,7 @@ bool LocationManager::init()
 
     Eigen::Vector3d gravity;
     gravity << 0,0,-9.806; // Muovere in file di configurazione
-    rosdyn::ChainPtr chain = rosdyn::createChain(*robot_model_loader.getURDF(),world_frame,m_tool_names.at(group_name),gravity);
+    rosdyn::ChainPtr chain = rosdyn::createChain(*robot_model_loader.getURDF(),m_world_frame,m_tool_names.at(group_name),gravity);
     chain->setInputJointsName(jmg->getActiveJointModelNames());
     m_chains.insert(std::pair<std::string,rosdyn::ChainPtr>(group_name,chain));
     size_t n_joints = jmg->getActiveJointModelNames().size();
