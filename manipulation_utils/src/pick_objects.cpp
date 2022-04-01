@@ -251,6 +251,31 @@ namespace manipulation
   bool PickObjects::removeObjectsCb(manipulation_msgs::RemoveObjects::Request &req,
                                     manipulation_msgs::RemoveObjects::Response &res)
   {
+    ROS_ERROR_STREAM(req.object_names.size());
+    if(req.object_names.at(0)=="" && req.object_names.size()==1)
+    {
+      ROS_ERROR_STREAM("VUOTO");
+      std::vector<std::string> object_names;
+      for (std::map<std::string, BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); ++it)
+      {
+        std::vector<ObjectPtr> objects = it->second->getAllObjects();
+        ROS_ERROR_STREAM("List of objects name: ");
+        for (const ObjectPtr &object : objects)
+        {
+          object_names.push_back(object->getName());
+          ROS_ERROR_STREAM(object->getName());
+        }
+
+      }
+      req.object_names = object_names;
+
+    }
+    ROS_ERROR_STREAM("List of objects name: ");
+    for(unsigned int k=0;k<req.object_names.size();k++)
+      ROS_ERROR_STREAM(req.object_names[k]);
+
+
+
     for (const std::string &object_name : req.object_names)
     {
       for (std::map<std::string, BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); ++it)

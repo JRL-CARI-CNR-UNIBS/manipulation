@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 std::shared_ptr<manipulation::InboundPickFromParam> inb;
 
-bool addObjectsCb(std_srvs::SetBoolRequest& req, 
+bool addObjectsCb(std_srvs::SetBoolRequest& req,
                   std_srvs::SetBoolResponse& res)
 {
   if (!inb->readObjectFromParam())

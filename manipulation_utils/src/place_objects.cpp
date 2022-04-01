@@ -266,6 +266,21 @@ bool PlaceObjects::removeObjectFromSlotCb(manipulation_msgs::RemoveObjectFromSlo
 bool PlaceObjects::resetSlotsCb(manipulation_msgs::ResetSlots::Request& req,
                                 manipulation_msgs::ResetSlots::Response& res)
 {
+  /*If request group name is empty retrieve all manipulation*/
+  if(req.slots_group_name.at(0)=="")
+  {
+
+    ROS_ERROR_STREAM("VUOTO");
+    std::vector<std::string> slots_name;
+    ROS_ERROR_STREAM("NOMI SLOT GROUO: ");
+    for (std::map<std::string, SlotsGroupPtr>::iterator it = m_slots_group.begin(); it != m_slots_group.end(); ++it)
+    {
+      ROS_ERROR_STREAM(it->second->getName());
+      slots_name.push_back( it->second->getName());
+    }
+    req.slots_group_name = slots_name;
+
+  }
   for (const std::string& slot_group_name: req.slots_group_name)
   {
     if (m_slots_group.find(slot_group_name) != m_slots_group.end())
