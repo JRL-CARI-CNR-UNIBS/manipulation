@@ -180,6 +180,25 @@ bool PlaceObjects::addSlotsCb(manipulation_msgs::AddSlots::Request& req,
 bool PlaceObjects::removeSlotsCb( manipulation_msgs::RemoveSlots::Request& req,
                                   manipulation_msgs::RemoveSlots::Response& res)
 {
+    if(req.slots_names.at(0)=="")
+    {
+
+      ROS_ERROR_STREAM("VUOTO");
+      std::vector<std::string> slots_name;
+      std::vector<SlotPtr> slots;
+      ROS_ERROR_STREAM("NOMI SLOT: ");
+      for (std::map<std::string, SlotsGroupPtr>::iterator it = m_slots_group.begin(); it != m_slots_group.end(); ++it)
+      {
+          slots = it->second->getAllSlots();
+          for(auto &slot:slots)
+          {
+              slots_name.push_back(slot->getName());
+              ROS_ERROR_STREAM(slot->getName());
+          }
+      }
+      req.slots_names = slots_name;
+
+    }
   for (std::map<std::string,SlotsGroupPtr>::iterator it = m_slots_group.begin(); it != m_slots_group.end(); ++it)
   {
     for (const std::string& slot_name: req.slots_names)
