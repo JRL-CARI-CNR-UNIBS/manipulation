@@ -455,7 +455,7 @@ void PlaceObjects::placeObjectGoalCb( const manipulation_msgs::PlaceObjectsGoalC
     m_display_publisher.publish(disp_trj);
 
     geometry_msgs::PoseStamped target;
-    target.header.frame_id = world_frame;
+    target.header.frame_id = m_world_frame;
     target.header.stamp = ros::Time::now();
     tf::poseEigenToMsg(m_locations.at(selected_slot->getLocationName())->getApproach(),target.pose);
     m_target_pub.publish(target);
@@ -710,7 +710,7 @@ void PlaceObjects::publishTF()
   try
   {
     for (const std::pair<std::string,tf::Transform>& t: m_tf)
-      m_broadcaster.sendTransform(tf::StampedTransform(t.second, ros::Time::now(), world_frame, t.first));
+      m_broadcaster.sendTransform(tf::StampedTransform(t.second, ros::Time::now(), m_world_frame, t.first));
   }
   catch(const std::exception& ex)
   {
