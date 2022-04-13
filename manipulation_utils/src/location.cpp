@@ -452,7 +452,7 @@ bool LocationManager::getLocationIkCb(manipulation_msgs::GetLocationIkSolution::
     for (int iq=0;iq<q.size();iq++)
       configuration.configuration.push_back(q(iq));
     res.ik_solutions.push_back(configuration);
-    double vol=(chain->getJacobian(q).transpose()*chain->getJacobian(q)).determinant();
+    double vol=std::sqrt((chain->getJacobian(q).transpose()*chain->getJacobian(q)).determinant());
     res.manipulability_volumes.push_back(vol);
   }
 
