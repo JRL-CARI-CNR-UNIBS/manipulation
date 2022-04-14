@@ -85,11 +85,11 @@ namespace manipulation
       bool addObjectsCb(manipulation_msgs::AddObjects::Request& req,
                         manipulation_msgs::AddObjects::Response& res);
 
-      bool removeObjectsCb( manipulation_msgs::RemoveObjects::Request& req,
-                            manipulation_msgs::RemoveObjects::Response& res);
+      bool removeObjectsCb(manipulation_msgs::RemoveObjects::Request& req,
+                           manipulation_msgs::RemoveObjects::Response& res);
 
-      bool removeAllObjectsCb(std_srvs::SetBoolRequest& req,
-                              std_srvs::SetBoolResponse& res);
+      bool removeAllObjectsCb(std_srvs::SetBool::Request &req,
+                              std_srvs::SetBool::Response &res);
 
       bool listObjectsCb( manipulation_msgs::ListOfObjects::Request& req,
                           manipulation_msgs::ListOfObjects::Response& res);

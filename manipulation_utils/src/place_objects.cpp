@@ -58,6 +58,7 @@ bool PlaceObjects::init()
   m_remove_slots_srv = m_pnh.advertiseService("remove_slots",&PlaceObjects::removeSlotsCb,this);
   m_remove_obj_from_slot_srv = m_pnh.advertiseService("remove_obj_from_slot",&PlaceObjects::removeObjectFromSlotCb,this);
   m_reset_slots_srv = m_pnh.advertiseService("outbound/reset_slot",&PlaceObjects::resetSlotsCb, this);
+  m_reset_all_slots_srv = m_pnh.advertiseService("outbound/reset_all_slot",&PlaceObjects::resetAllSlotsCb, this);
   m_list_slots_srv = m_pnh.advertiseService("list_slots", &PlaceObjects::listOfSlotsCb,this);
 
   m_detach_object_srv = m_nh.serviceClient<object_loader_msgs::DetachObject>("detach_object_to_link");
@@ -180,25 +181,6 @@ bool PlaceObjects::addSlotsCb(manipulation_msgs::AddSlots::Request& req,
 bool PlaceObjects::removeSlotsCb( manipulation_msgs::RemoveSlots::Request& req,
                                   manipulation_msgs::RemoveSlots::Response& res)
 {
-    if(req.slots_names.at(0)=="")
-    {
-
-      ROS_ERROR_STREAM("VUOTO");
-      std::vector<std::string> slots_name;
-      std::vector<SlotPtr> slots;
-      ROS_ERROR_STREAM("NOMI SLOT: ");
-      for (std::map<std::string, SlotsGroupPtr>::iterator it = m_slots_group.begin(); it != m_slots_group.end(); ++it)
-      {
-          slots = it->second->getAllSlots();
-          for(auto &slot:slots)
-          {
-              slots_name.push_back(slot->getName());
-              ROS_ERROR_STREAM(slot->getName());
-          }
-      }
-      req.slots_names = slots_name;
-
-    }
   for (std::map<std::string,SlotsGroupPtr>::iterator it = m_slots_group.begin(); it != m_slots_group.end(); ++it)
   {
     for (const std::string& slot_name: req.slots_names)
@@ -285,21 +267,6 @@ bool PlaceObjects::removeObjectFromSlotCb(manipulation_msgs::RemoveObjectFromSlo
 bool PlaceObjects::resetSlotsCb(manipulation_msgs::ResetSlots::Request& req,
                                 manipulation_msgs::ResetSlots::Response& res)
 {
-  /*If request group name is empty retrieve all manipulation*/
-  if(req.slots_group_name.at(0)=="")
-  {
-
-    ROS_ERROR_STREAM("VUOTO");
-    std::vector<std::string> slots_name;
-    ROS_ERROR_STREAM("NOMI SLOT GROUO: ");
-    for (std::map<std::string, SlotsGroupPtr>::iterator it = m_slots_group.begin(); it != m_slots_group.end(); ++it)
-    {
-      ROS_ERROR_STREAM(it->second->getName());
-      slots_name.push_back( it->second->getName());
-    }
-    req.slots_group_name = slots_name;
-
-  }
   for (const std::string& slot_group_name: req.slots_group_name)
   {
     if (m_slots_group.find(slot_group_name) != m_slots_group.end())
@@ -310,6 +277,18 @@ bool PlaceObjects::resetSlotsCb(manipulation_msgs::ResetSlots::Request& req,
     else
       ROS_ERROR("Can't reset slots in the group %s the specified group doesn't exist.", slot_group_name.c_str());
   }
+  return true;
+}
+
+bool PlaceObjects::resetAllSlotsCb(std_srvs::SetBool::Request &req,
+                                    std_srvs::SetBool::Response &res)
+{
+  for (std::map<std::string, SlotsGroupPtr>::iterator it = m_slots_group.begin(); it != m_slots_group.end(); ++it)
+  {
+    ROS_ERROR_STREAM(it->second->getName());
+    it->second->resetSlot();
+  }
+  res.success = true;
   return true;
 }
 

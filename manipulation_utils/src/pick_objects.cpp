@@ -252,37 +252,6 @@ namespace manipulation
   bool PickObjects::removeObjectsCb(manipulation_msgs::RemoveObjects::Request &req,
                                     manipulation_msgs::RemoveObjects::Response &res)
   {
-    ROS_ERROR_STREAM("Tutte le tf: ");
-
-    for(auto &single_tf: m_tf)
-    {
-        ROS_ERROR_STREAM(single_tf);
-    }
-
-    ROS_ERROR_STREAM(req.object_names.size());
-    if(req.object_names.at(0)=="" && req.object_names.size()==1)
-    {
-      ROS_ERROR_STREAM("VUOTO");
-      std::vector<std::string> object_names;
-      for (std::map<std::string, BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); ++it)
-      {
-        std::vector<ObjectPtr> objects = it->second->getAllObjects();
-        ROS_ERROR_STREAM("List of objects name: ");
-        for (const ObjectPtr &object : objects)
-        {
-          object_names.push_back(object->getName());
-          ROS_ERROR_STREAM(object->getName());
-        }
-
-      }
-      req.object_names = object_names;
-    }
-    ROS_ERROR_STREAM("List of objects name: ");
-    for(unsigned int k=0;k<req.object_names.size();k++)
-      ROS_ERROR_STREAM(req.object_names[k]);
-
-
-
     for (const std::string &object_name : req.object_names)
     {
       for (std::map<std::string, BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); ++it)
@@ -308,49 +277,17 @@ namespace manipulation
     return true;
   }
 
-  bool PickObjects::removeAllObjectsCb(std_srvs::SetBool:SetBoolRequest &req,
-                                       std_srvs::SetBool:SetBoolRequest &res)
+  bool PickObjects::removeAllObjectsCb(std_srvs::SetBool::Request &req,
+                                       std_srvs::SetBool::Response &res)
   {
-      return true;
-//    std::vector<std::string> object_names;
+    for (std::map<std::string, BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); ++it)
+    {
+      it->second->removeAllObjects();
+    }
+    m_tf.clear();
 
-//    for (std::map<std::string, BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); ++it)
-//    {
-//      std::vector<ObjectPtr> objects = it->second->getAllObjects();
-//      it->removeAllObjects
-//      ROS_ERROR_STREAM("List of objects name: ");
-//      for (const ObjectPtr &object : objects)
-//      {
-//        object_names.push_back(object->getName());
-//        ROS_ERROR_STREAM(object->getName());
-//      }
-
-//    }
-
-
-//    for (const std::string &object_name : req.object_names)
-//    {
-//      for (std::map<std::string, BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); ++it)
-//      {
-//        if (it->second->findObject(object_name))
-//        {
-//          if (!it->second->removeObject(object_name))
-//            ROS_ERROR("Can't remove object %s.", object_name.c_str());
-//        }
-//      }
-
-//      if (m_tf.find("pick/approach/" + object_name) != m_tf.end())
-//        m_tf.erase(m_tf.find("pick/approach/" + object_name));
-
-//      if (m_tf.find("pick/to/" + object_name) != m_tf.end())
-//        m_tf.erase(m_tf.find("pick/to/" + object_name));
-
-//      if (m_tf.find("pick/leave/" + object_name) != m_tf.end())
-//        m_tf.erase(m_tf.find("pick/leave/" + object_name));
-
-//      ROS_INFO("Removed object %s.", object_name.c_str());
-//    }
-//    return true;
+    res.success=true;
+    return true;
   }
 
 

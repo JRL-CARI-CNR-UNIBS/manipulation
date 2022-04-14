@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 std::shared_ptr<manipulation::OutboundPlaceFromParam> oub;
 
-bool addObjectsCb(std_srvs::SetBoolRequest& req,
+bool addSlotsCb(std_srvs::SetBoolRequest& req,
                   std_srvs::SetBoolResponse& res)
 {
   if (!oub->readSlotsFromParam())
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 
   ROS_INFO("Outbound slot loaded");
 
-  ros::ServiceServer s = pnh.advertiseService("add_slots",&addObjectsCb);
+  ros::ServiceServer s = pnh.advertiseService("add_slots",&addSlotsCb);
   ros::spin();
   return 0;
 }
