@@ -1,5 +1,7 @@
 #Name of the skill 
 string skill_name
+#Name of the managed object, if any
+string object_id
 #Name of the tool be used to execute the skill
 string tool_id
 #Property of the tool to be applied to the tool in use 
