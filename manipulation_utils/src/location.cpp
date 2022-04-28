@@ -445,12 +445,15 @@ bool LocationManager::getLocationIkCb(manipulation_msgs::GetLocationIkSolution::
   }
 
   ik_sols = loc->getLocationIk(req.group_name);
+  rosdyn::ChainPtr chain=m_chains.at(req.group_name);
   for (const Eigen::VectorXd& q: ik_sols)
   {
     manipulation_msgs::Configuration configuration;
     for (int iq=0;iq<q.size();iq++)
       configuration.configuration.push_back(q(iq));
     res.ik_solutions.push_back(configuration);
+    double vol=std::sqrt((chain->getJacobian(q).transpose()*chain->getJacobian(q)).determinant());
+    res.manipulability_volumes.push_back(vol);
   }
 
   ik_sols = loc->getLeaveIk(req.group_name);
