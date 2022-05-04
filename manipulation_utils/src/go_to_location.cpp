@@ -64,7 +64,7 @@ bool GoToLocation::init()
     ROS_ERROR("The group_names vector is empty, no ActionServer can be created for GoToLocation Skill.");
     return false;
   }
-  
+
   return true;
 }
 
@@ -79,7 +79,7 @@ void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,
 
   manipulation_msgs::GoToResult action_res;
   std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::GoToAction>> as = m_goto_location_server.at(group_name);
-  
+
   try
   {
     ros::Time t_start = ros::Time::now();
@@ -122,7 +122,7 @@ void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,
 
     moveit::core::JointModelGroup* jmg = m_joint_models.at(group_name);
     robot_state::RobotState state = *m_groups.at(group_name)->getCurrentState();
-    
+
     Eigen::VectorXd actual_jconf;
     if (jmg)
       state.copyJointGroupPositions(jmg, actual_jconf);
@@ -170,9 +170,9 @@ void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,
       as->setAborted(action_res,"error while executing trajectory.");
       return;
     }
-    
+
     fjtClientWaitForResult(group_name);
-    
+
     if (!wait(group_name))
     {
       action_res.result = manipulation_msgs::GoToResult::TrajectoryError;
@@ -194,8 +194,8 @@ void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,
     }
 
     action_res.result = manipulation_msgs::GoToResult::Success;
-    as->setSucceeded(action_res,"ok");
     action_res.actual_duration += (ros::Time::now() - t_start);
+    as->setSucceeded(action_res,"ok");
 
   }
   catch(const std::exception& ex)
