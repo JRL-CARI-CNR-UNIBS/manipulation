@@ -62,6 +62,7 @@ protected:
 
   ros::ServiceClient m_detach_object_srv;
   ros::ServiceClient m_remove_object_from_scene_srv;
+  ros::ServiceClient m_is_attached_srv;
 
   std::map<std::string,SlotsGroupPtr> m_slots_group;
 

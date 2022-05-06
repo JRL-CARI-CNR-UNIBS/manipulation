@@ -65,6 +65,7 @@ namespace manipulation
       ros::ServiceServer m_list_objects_srv;
       ros::ServiceServer m_reset_srv;
       ros::ServiceClient m_attach_object_srv;
+      ros::ServiceClient m_is_attached_srv;
       ros::ServiceClient m_change_color_client;
       std::map<std::string,std::shared_ptr<actionlib::SimpleActionServer<manipulation_msgs::PickObjectsAction>>> m_pick_servers;
   
