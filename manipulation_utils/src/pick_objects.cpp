@@ -54,6 +54,7 @@ namespace manipulation
     m_remove_boxes_srv = m_pnh.advertiseService("remove_boxes", &PickObjects::removeBoxesCb, this);
     m_add_objects_srv = m_pnh.advertiseService("add_objects", &PickObjects::addObjectsCb, this);
     m_remove_objects_srv = m_pnh.advertiseService("remove_objects", &PickObjects::removeObjectsCb, this);
+    m_remove_all_objects_srv = m_pnh.advertiseService("remove_all_objects", &PickObjects::removeAllObjectsCb, this);
     m_list_objects_srv = m_pnh.advertiseService("list_objects", &PickObjects::listObjectsCb, this);
     m_reset_srv = m_pnh.advertiseService("inboud/reset_box", &PickObjects::resetBoxesCb, this);
 
@@ -275,6 +276,20 @@ namespace manipulation
     }
     return true;
   }
+
+  bool PickObjects::removeAllObjectsCb(std_srvs::SetBool::Request &req,
+                                       std_srvs::SetBool::Response &res)
+  {
+    for (std::map<std::string, BoxPtr>::iterator it = m_boxes.begin(); it != m_boxes.end(); ++it)
+    {
+      it->second->removeAllObjects();
+    }
+    m_tf.clear();
+
+    res.success=true;
+    return true;
+  }
+
 
   bool PickObjects::listObjectsCb(manipulation_msgs::ListOfObjects::Request &req,
                                   manipulation_msgs::ListOfObjects::Response &res)

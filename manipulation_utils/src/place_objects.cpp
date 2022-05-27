@@ -58,6 +58,7 @@ bool PlaceObjects::init()
   m_remove_slots_srv = m_pnh.advertiseService("remove_slots",&PlaceObjects::removeSlotsCb,this);
   m_remove_obj_from_slot_srv = m_pnh.advertiseService("remove_obj_from_slot",&PlaceObjects::removeObjectFromSlotCb,this);
   m_reset_slots_srv = m_pnh.advertiseService("outbound/reset_slot",&PlaceObjects::resetSlotsCb, this);
+  m_reset_all_slots_srv = m_pnh.advertiseService("outbound/reset_all_slot",&PlaceObjects::resetAllSlotsCb, this);
   m_list_slots_srv = m_pnh.advertiseService("list_slots", &PlaceObjects::listOfSlotsCb,this);
 
   m_detach_object_srv = m_nh.serviceClient<object_loader_msgs::DetachObject>("detach_object_to_link");
@@ -276,6 +277,18 @@ bool PlaceObjects::resetSlotsCb(manipulation_msgs::ResetSlots::Request& req,
     else
       ROS_ERROR("Can't reset slots in the group %s the specified group doesn't exist.", slot_group_name.c_str());
   }
+  return true;
+}
+
+bool PlaceObjects::resetAllSlotsCb(std_srvs::SetBool::Request &req,
+                                    std_srvs::SetBool::Response &res)
+{
+  for (std::map<std::string, SlotsGroupPtr>::iterator it = m_slots_group.begin(); it != m_slots_group.end(); ++it)
+  {
+    ROS_ERROR_STREAM(it->second->getName());
+    it->second->resetSlot();
+  }
+  res.success = true;
   return true;
 }
 

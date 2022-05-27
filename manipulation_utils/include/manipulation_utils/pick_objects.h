@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tf_conversions/tf_eigen.h>
 #include <tf/transform_datatypes.h>
 
-
+#include <std_srvs/SetBool.h>
 #include <manipulation_msgs/AddBoxes.h>
 #include <manipulation_msgs/AddObjects.h>
 #include <manipulation_msgs/ListOfObjects.h>
@@ -62,6 +62,7 @@ namespace manipulation
       ros::ServiceServer m_remove_boxes_srv;
       ros::ServiceServer m_add_objects_srv;
       ros::ServiceServer m_remove_objects_srv;
+      ros::ServiceServer m_remove_all_objects_srv;
       ros::ServiceServer m_list_objects_srv;
       ros::ServiceServer m_reset_srv;
       ros::ServiceClient m_attach_object_srv;
@@ -84,8 +85,11 @@ namespace manipulation
       bool addObjectsCb(manipulation_msgs::AddObjects::Request& req,
                         manipulation_msgs::AddObjects::Response& res);
 
-      bool removeObjectsCb( manipulation_msgs::RemoveObjects::Request& req,
-                            manipulation_msgs::RemoveObjects::Response& res);
+      bool removeObjectsCb(manipulation_msgs::RemoveObjects::Request& req,
+                           manipulation_msgs::RemoveObjects::Response& res);
+
+      bool removeAllObjectsCb(std_srvs::SetBool::Request &req,
+                              std_srvs::SetBool::Response &res);
 
       bool listObjectsCb( manipulation_msgs::ListOfObjects::Request& req,
                           manipulation_msgs::ListOfObjects::Response& res);
