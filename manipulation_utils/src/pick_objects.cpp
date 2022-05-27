@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <object_loader_msgs/AttachObject.h>
 #include <object_loader_msgs/ChangeColor.h>
+#include <object_loader_msgs/IsAttached.h>
 
 #include <moveit/planning_interface/planning_interface.h>
 #include <moveit_planning_helper/manage_trajectories.h>
@@ -57,7 +58,7 @@ namespace manipulation
     m_remove_all_objects_srv = m_pnh.advertiseService("remove_all_objects", &PickObjects::removeAllObjectsCb, this);
     m_list_objects_srv = m_pnh.advertiseService("list_objects", &PickObjects::listObjectsCb, this);
     m_reset_srv = m_pnh.advertiseService("inboud/reset_box", &PickObjects::resetBoxesCb, this);
-
+    m_is_attached_srv = m_pnh.serviceClient<object_loader_msgs::IsAttached>("/is_attached");
     m_change_color_client = m_pnh.serviceClient<object_loader_msgs::ChangeColor>("/change_color");
     m_attach_object_srv = m_nh.serviceClient<object_loader_msgs::AttachObject>("/attach_object_to_link");
     m_attach_object_srv.waitForExistence();
@@ -713,31 +714,13 @@ namespace manipulation
       ros::Time t_grasp_init = ros::Time::now();
       ros::Duration(0.15).sleep(); // REMOVE???
 
-      object_loader_msgs::AttachObject attach_srv;
-      attach_srv.request.obj_id = selected_object->getName();
-      attach_srv.request.link_name = selected_grasp_pose->getToolName();
-      ROS_DEBUG("attach object %s to %s. grasp %s", attach_srv.request.obj_id.c_str(), attach_srv.request.link_name.c_str(),best_object_location_name.c_str());
-      if (!m_attach_object_srv.call(attach_srv))
-      {
-        action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
-        ROS_ERROR("Unaspected error calling %s service", m_attach_object_srv.getService().c_str());
-        as->setAborted(action_res, "unaspected error calling attach server");
-        return;
-      }
-      if (!attach_srv.response.success)
-      {
-        action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
-        ROS_ERROR("Unable to attach object %s", best_object_name.c_str());
-        as->setAborted(action_res, "unable to attach object");
-        return;
-      }
 
-      ROS_INFO("Group %s: attached collision object %s to tool %s", group_name.c_str(), attach_srv.request.obj_id.c_str(), attach_srv.request.link_name.c_str());
+
 
       // Set the desired tool behaviour
       if (!goal->property_exec_id.empty())
       {
-        if (!jobExecute(goal->job_exec_name, goal->tool_id, goal->property_exec_id))
+        if (!jobExecute(goal->job_exec_name, goal->tool_id, goal->property_exec_id,selected_object->getName()))
         {
           action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
           ROS_ERROR("Error during job execution for object name %s ", best_object_name.c_str());
@@ -745,6 +728,40 @@ namespace manipulation
           return;
         }
       }
+      object_loader_msgs::IsAttached is_attached_srv;
+      is_attached_srv.request.obj_id = selected_object->getName();
+      if (!m_is_attached_srv.call(is_attached_srv))
+      {
+        action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
+        ROS_ERROR("Unaspected error calling %s service", m_is_attached_srv.getService().c_str());
+        as->setAborted(action_res, "unaspected error calling attach server");
+        return;
+      }
+
+      if (not is_attached_srv.response.success)
+      {
+        object_loader_msgs::AttachObject attach_srv;
+        attach_srv.request.obj_id = selected_object->getName();
+        attach_srv.request.link_name = selected_grasp_pose->getToolName();
+        ROS_DEBUG("attach object %s to %s. grasp %s", attach_srv.request.obj_id.c_str(), attach_srv.request.link_name.c_str(),best_object_location_name.c_str());
+        if (!m_attach_object_srv.call(attach_srv))
+        {
+          action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
+          ROS_ERROR("Unaspected error calling %s service", m_attach_object_srv.getService().c_str());
+          as->setAborted(action_res, "unaspected error calling attach server");
+          return;
+        }
+        if (!attach_srv.response.success)
+        {
+          action_res.result = manipulation_msgs::PickObjectsResult::GraspFailure;
+          ROS_ERROR("Unable to attach object %s", best_object_name.c_str());
+          as->setAborted(action_res, "unable to attach object");
+          return;
+        }
+      }
+
+      ROS_INFO("Group %s: attached collision object %s to tool %s", group_name.c_str(), selected_object->getName().c_str(), selected_grasp_pose->getToolName().c_str());
+
 
       // Remove the picked object from LocationManager
       if (!selected_box->removeObject(selected_object->getName()))

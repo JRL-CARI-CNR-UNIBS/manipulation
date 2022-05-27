@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <object_loader_msgs/DetachObject.h>
 #include <object_loader_msgs/RemoveObjects.h>
+#include <object_loader_msgs/IsAttached.h>
 
 #include <moveit_planning_helper/manage_trajectories.h>
 
@@ -60,6 +61,7 @@ bool PlaceObjects::init()
   m_reset_slots_srv = m_pnh.advertiseService("outbound/reset_slot",&PlaceObjects::resetSlotsCb, this);
   m_reset_all_slots_srv = m_pnh.advertiseService("outbound/reset_all_slot",&PlaceObjects::resetAllSlotsCb, this);
   m_list_slots_srv = m_pnh.advertiseService("list_slots", &PlaceObjects::listOfSlotsCb,this);
+  m_is_attached_srv = m_pnh.serviceClient<object_loader_msgs::IsAttached>("/is_attached");
 
   m_detach_object_srv = m_nh.serviceClient<object_loader_msgs::DetachObject>("detach_object_to_link");
   m_detach_object_srv.waitForExistence();
@@ -544,29 +546,11 @@ void PlaceObjects::placeObjectGoalCb( const manipulation_msgs::PlaceObjectsGoalC
     ros::Time t_release_init = ros::Time::now();
     ros::Duration(0.15).sleep();
 
-    object_loader_msgs::DetachObject detach_srv;
-    detach_srv.request.obj_id = object_name;
-    if (!m_detach_object_srv.call(detach_srv))
-    {
-      action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
-      ROS_ERROR("Unaspected error calling %s service",m_detach_object_srv.getService().c_str());
-      as->setAborted(action_res,"unaspected error calling detach server");
-      return;
-    }
-    if (!detach_srv.response.success)
-    {
-      action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
-      ROS_ERROR("Unable to detach object name %s",goal->object_name.c_str());
-      as->setAborted(action_res,"unable to detach object");
-      return;
-    }
-    ROS_INFO("Group %s: detached object %s ", group_name.c_str(), detach_srv.request.obj_id.c_str());
-
 
     // Set the desired tool behaviour
     if(!goal->property_exec_id.empty())
     {
-      if (!jobExecute(goal->job_exec_name,goal->tool_id,goal->property_exec_id) )
+      if (!jobExecute(goal->job_exec_name,goal->tool_id,goal->property_exec_id,object_name) )
       {
         action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
         ROS_ERROR("Error on service during job execution for object name %s ", goal->object_name.c_str());
@@ -574,6 +558,39 @@ void PlaceObjects::placeObjectGoalCb( const manipulation_msgs::PlaceObjectsGoalC
         return;
       }
     }
+
+    object_loader_msgs::IsAttached is_attached_srv;
+    is_attached_srv.request.obj_id = object_name;
+    if (!m_is_attached_srv.call(is_attached_srv))
+    {
+      action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
+      ROS_ERROR("Unaspected error calling %s service", m_is_attached_srv.getService().c_str());
+      as->setAborted(action_res, "unaspected error calling is attached server");
+      return;
+    }
+
+    if (is_attached_srv.response.success)
+    {
+      object_loader_msgs::DetachObject detach_srv;
+      detach_srv.request.obj_id = object_name;
+      if (!m_detach_object_srv.call(detach_srv))
+      {
+        action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
+        ROS_ERROR("Unaspected error calling %s service",m_detach_object_srv.getService().c_str());
+        as->setAborted(action_res,"unaspected error calling detach server");
+        return;
+      }
+      if (!detach_srv.response.success)
+      {
+        action_res.result = manipulation_msgs::PlaceObjectsResult::ReleaseError;
+        ROS_ERROR("Unable to detach object name %s",goal->object_name.c_str());
+        as->setAborted(action_res,"unable to detach object");
+        return;
+      }
+    }
+    ROS_INFO("Group %s: detached object %s ", group_name.c_str(), object_name.c_str());
+
+
 
     action_res.release_object_duration = ros::Time::now() - t_release_init;
 
