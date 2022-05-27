@@ -1026,6 +1026,16 @@ bool LocationManager::ik( const std::string& group_name,
   std::vector<double> lower_bound = m_lower_bound.at(group_name);
   std::vector<double> upper_bound = m_upper_bound.at(group_name);
 
+  Eigen::VectorXd lb(lower_bound.size());
+  Eigen::VectorXd ub(lower_bound.size());
+  for (size_t iax=0;iax<lower_bound.size();iax++)
+  {
+    lb(iax)=lower_bound.at(iax);
+    ub(iax)=upper_bound.at(iax);
+  }
+  Eigen::VectorXd center=(ub+lb)*0.5;
+  Eigen::VectorXd width=(ub-lb)*0.5;
+
   int stall=0;
   unsigned int iter=0;
   for (; iter<N_MAX_ITER; iter++)
@@ -1044,6 +1054,8 @@ bool LocationManager::ik( const std::string& group_name,
 
     Eigen::VectorXd js;
     Eigen::VectorXd start;
+    Eigen::VectorXd r(lb.size());
+    r.setRandom(); // between [-1,1]
 
     if (iter<n_seed)
     {
@@ -1055,8 +1067,9 @@ bool LocationManager::ik( const std::string& group_name,
     }
     else
     {
-      state.setToRandomPositions();
-      state.copyJointGroupPositions(group_name,start);
+      //state.setToRandomPositions();
+      //state.copyJointGroupPositions(group_name,start);
+      start=center+width.cwiseProduct(r);
     }
 
     bool out_of_bound = false;
