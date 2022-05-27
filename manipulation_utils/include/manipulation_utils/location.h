@@ -68,7 +68,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tf/transform_broadcaster.h>
 
 #include <thread>
-#define N_MAX_ITER 20000
+#define N_MAX_ITER 20000000
 #define N_ITER 200
 #define TOLERANCE 1e-3
 #define IK_CLOSE_LOCATION 0.2

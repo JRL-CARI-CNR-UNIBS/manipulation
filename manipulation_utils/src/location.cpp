@@ -1027,7 +1027,8 @@ bool LocationManager::ik( const std::string& group_name,
   std::vector<double> upper_bound = m_upper_bound.at(group_name);
 
   int stall=0;
-  for (unsigned int iter=0; iter<N_MAX_ITER; iter++)
+  unsigned int iter=0;
+  for (; iter<N_MAX_ITER; iter++)
   {
     if (solutions.size()>=ntrial)
       break;
@@ -1150,7 +1151,7 @@ bool LocationManager::ik( const std::string& group_name,
   for (const std::pair<double,Eigen::VectorXd>& sol: solutions)
     sols.push_back(sol.second);
 
-  ROS_DEBUG("Found %lu solutions for the IK.", sols.size());
+  ROS_FATAL("Found %lu solutions for the IK. (stall=%d, iter=%u)", sols.size(),stall,iter);
 
   return found;
 }
