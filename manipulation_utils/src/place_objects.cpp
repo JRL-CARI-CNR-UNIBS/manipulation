@@ -309,7 +309,7 @@ void PlaceObjects::placeObjectGoalCb( const manipulation_msgs::PlaceObjectsGoalC
   try
   {
     ros::Time t_start = ros::Time::now();
-    
+
     /* Check if there is an available slot */
     if (m_slots_group.size() == 0)
     {
@@ -623,11 +623,15 @@ void PlaceObjects::placeObjectGoalCb( const manipulation_msgs::PlaceObjectsGoalC
 
     ROS_INFO("Planning to leave position after object release. Group %s",group_name.c_str());
 
+    state = *m_groups.at(group_name)->getCurrentState();
+    if (jmg)
+      state.copyJointGroupPositions(jmg, actual_jconf);
+
     plan = planTo(group_name,
                   slot_names,
                   Location::Destination::Leave,
-                  object_release_jconf,
-                  object_release_jconf,
+                  actual_jconf,
+                  actual_jconf,
                   result,
                   slot_leave_jconf,
                   best_slot_name);
@@ -698,7 +702,7 @@ void PlaceObjects::placeObjectGoalCb( const manipulation_msgs::PlaceObjectsGoalC
     as->setAborted(action_res,"exception");
     return;
   }
-  
+
 }
 
 void PlaceObjects::publishTF()
