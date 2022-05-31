@@ -28,6 +28,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <std_srvs/SetBool.h>
 #include <manipulation_msgs/AddSlotsGroup.h>
 #include <manipulation_msgs/RemoveSlotsGroup.h>
 #include <manipulation_msgs/AddSlots.h>
@@ -58,10 +59,13 @@ protected:
   ros::ServiceServer m_remove_slots_srv;
   ros::ServiceServer m_remove_obj_from_slot_srv;
   ros::ServiceServer m_reset_slots_srv;
+  ros::ServiceServer m_reset_all_slots_srv;
+
   ros::ServiceServer m_list_slots_srv;
 
   ros::ServiceClient m_detach_object_srv;
   ros::ServiceClient m_remove_object_from_scene_srv;
+  ros::ServiceClient m_is_attached_srv;
 
   std::map<std::string,SlotsGroupPtr> m_slots_group;
 
@@ -97,6 +101,9 @@ public:
 
   bool resetSlotsCb(manipulation_msgs::ResetSlots::Request& req,
                     manipulation_msgs::ResetSlots::Response& res);
+
+  bool resetAllSlotsCb(std_srvs::SetBool::Request &req,
+                        std_srvs::SetBool::Response &res);
 
   void placeObjectGoalCb( const manipulation_msgs::PlaceObjectsGoalConstPtr& goal,
                           const std::string& group_name);

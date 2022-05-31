@@ -152,7 +152,8 @@ void SkillBase::fjtClientWaitForResult(const std::string& group_name)
 
 bool SkillBase::jobExecute( const std::string& job_executor_name,
                             const std::string& tool_id,
-                            const std::string& property_id  )
+                            const std::string& property_id,
+                            const std::string& object_id  )
 {
   ros::ServiceClient job_srv = m_pnh.serviceClient<manipulation_msgs::JobExecution>(job_executor_name);
   if (not job_srv.waitForExistence(ros::Duration(10)))
@@ -165,6 +166,7 @@ bool SkillBase::jobExecute( const std::string& job_executor_name,
   job_req.request.skill_name = m_skill_name;
   job_req.request.tool_id = tool_id;
   job_req.request.property_id = property_id;
+  job_req.request.object_id=object_id;
 
   if (!job_srv.call(job_req))
   {

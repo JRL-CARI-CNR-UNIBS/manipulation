@@ -79,7 +79,8 @@ namespace manipulation
 
       bool jobExecute(const std::string& job_executor_name,
                       const std::string& tool_id,
-                      const std::string& property_id );
+                      const std::string& property_id,
+                      const std::string& object_id="");
 
       bool setController( const std::string& controller_name );
 
