@@ -824,6 +824,10 @@ namespace manipulation
         }
       }
 
+      m_nh.setParam("last_manipulated_object/type",selected_object->getType());
+      m_nh.setParam("last_manipulated_object/name",selected_object->getName());
+      m_nh.setParam("last_manipulated_object/box",best_box_name);
+
       action_res.object_type = selected_object->getType();
       action_res.object_name = selected_object->getName();
       action_res.inbound_box = best_box_name;
