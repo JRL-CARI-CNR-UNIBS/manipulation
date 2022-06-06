@@ -856,9 +856,26 @@ namespace manipulation
         }
       }
 
-      m_nh.setParam("last_manipulated_object/type",selected_object->getType());
-      m_nh.setParam("last_manipulated_object/name",selected_object->getName());
-      m_nh.setParam("last_manipulated_object/box",best_box_name);
+      try
+      {
+        std::string tmp;
+        m_nh.getParam("manipulated_object_last/type", tmp);
+        m_nh.setParam("manipulated_object_second_last/type",tmp);
+        m_nh.getParam("manipulated_object_last/name", tmp);
+        m_nh.setParam("manipulated_object_second_last/name",tmp);
+        m_nh.getParam("manipulated_object_last/box", tmp);
+        m_nh.setParam("manipulated_object_second_last/box",tmp);
+
+      }
+      catch (const std::exception &ex)
+      {
+        ROS_ERROR("PickObject:PickObjectGoalCb Exception thrown while reading and setting param: %s", ex.what());
+        return;
+      }
+
+      m_nh.setParam("manipulated_object_last/type",selected_object->getType());
+      m_nh.setParam("manipulated_object_last/name",selected_object->getName());
+      m_nh.setParam("manipulated_object_last/box",best_box_name);
 
       action_res.object_type = selected_object->getType();
       action_res.object_name = selected_object->getName();
