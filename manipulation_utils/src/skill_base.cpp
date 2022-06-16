@@ -166,7 +166,7 @@ bool SkillBase::jobExecute( const std::string& job_executor_name,
   job_req.request.skill_name = m_skill_name;
   job_req.request.tool_id = tool_id;
   job_req.request.property_id = property_id;
-  job_req.request.object_id=object_id;
+  job_req.request.object_id = object_id;
 
   if (!job_srv.call(job_req))
   {

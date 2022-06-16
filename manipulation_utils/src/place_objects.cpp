@@ -373,6 +373,8 @@ void PlaceObjects::placeObjectGoalCb( const manipulation_msgs::PlaceObjectsGoalC
     Eigen::VectorXd actual_jconf;
     if (jmg)
       state.copyJointGroupPositions(jmg, actual_jconf);
+    else
+      ROS_ERROR("No jmg.");
 
     std::string best_slot_name;
     Eigen::VectorXd slot_approach_jconf;
@@ -626,6 +628,8 @@ void PlaceObjects::placeObjectGoalCb( const manipulation_msgs::PlaceObjectsGoalC
     state = *m_groups.at(group_name)->getCurrentState();
     if (jmg)
       state.copyJointGroupPositions(jmg, actual_jconf);
+    else
+      ROS_ERROR("No jmg.");
 
     plan = planTo(group_name,
                   slot_names,

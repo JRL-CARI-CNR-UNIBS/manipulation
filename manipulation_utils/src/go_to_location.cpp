@@ -126,6 +126,8 @@ void GoToLocation::gotoGoalCb(const manipulation_msgs::GoToGoalConstPtr& goal,
     Eigen::VectorXd actual_jconf;
     if (jmg)
       state.copyJointGroupPositions(jmg, actual_jconf);
+    else
+      ROS_ERROR("No jmg.");
 
     Eigen::VectorXd location_jconf;
     std::string plan_to_location_name;

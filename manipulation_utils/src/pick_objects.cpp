@@ -452,6 +452,8 @@ namespace manipulation
       Eigen::VectorXd actual_jconf;
       if (jmg)
         state.copyJointGroupPositions(jmg, actual_jconf);
+      else
+        ROS_ERROR("No jmg.");
 
       std::string best_box_name;
 
@@ -785,11 +787,13 @@ namespace manipulation
         }
       }
 
-      ros::Duration(0.1).sleep(); // wait a certain amount of time before getting the robot CurrentState and planning to leave
+      ros::Duration(0.2).sleep(); // wait a certain amount of time before getting the robot CurrentState and planning to leave
 
       state = *m_groups.at(group_name)->getCurrentState();
       if (jmg)
         state.copyJointGroupPositions(jmg, actual_jconf);
+      else
+        ROS_ERROR("No jmg.");
 
       /* Planning to leave position after object picking */
 
