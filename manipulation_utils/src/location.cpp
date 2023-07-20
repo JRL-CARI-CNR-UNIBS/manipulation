@@ -830,7 +830,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
       std::vector<Eigen::VectorXd> sols_single_location;
       if(!getIkSolForLocation(location_name,destination,group_name,sols_single_location))
       {
-        result = res.error_code_;
+        result = res.error_code_.NO_IK_SOLUTION;
         return plan;
       }
 
@@ -839,6 +839,7 @@ moveit::planning_interface::MoveGroupInterface::Plan LocationManager::planTo( co
 
     if (sols.size() == 0)
     {
+      result = res.error_code_.NO_IK_SOLUTION;
       ROS_WARN("Found %zu solution can't plan trajectory.", sols.size());
       return plan;
     }
