@@ -1,0 +1,29 @@
+#Name of the location where the manipualtor has to move
+string[] tf_names
+
+
+moveit_msgs/PlanningScene planning_scene
+
+# The name of the planning pipeline to use. If no name is specified,
+# the configured planning pipeline will be used
+string pipeline_id
+
+# The name of the planning algorithm to use. If no name is specified,
+# the default planner of the planning pipeline will be used
+string planner_id
+
+# The maximum amount of time the motion planner is allowed to plan for (in seconds)
+float64 allowed_planning_time
+
+
+---
+# The full starting state of the robot at the start of the trajectory
+moveit_msgs/RobotState trajectory_start
+
+# The trajectory that moved group produced for execution
+moveit_msgs/RobotTrajectory planned_trajectory
+
+# Selected TF
+string selected_tf_name
+
+bool success
